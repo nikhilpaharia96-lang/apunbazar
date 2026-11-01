@@ -115,16 +115,16 @@ export default function AdminSettings() {
   const codExample      = shipping.codEnabled ? shipping.codFee : 0;
 
   return (
-    <div className="p-6 space-y-6 max-w-2xl">
+    <div className="p-3 sm:p-6 space-y-6 max-w-2xl">
       <div>
         <h1 className="font-serif text-2xl font-bold">Settings</h1>
         <p className="text-muted-foreground text-sm">Manage your store configuration</p>
       </div>
 
       {/* ── STORE INFO ── */}
-      <div className="bg-card border rounded-xl p-6 space-y-5">
+      <div className="bg-card border rounded-xl p-4 sm:p-6 space-y-5">
         <h3 className="font-semibold flex items-center gap-2"><Store className="h-4 w-4" /> Store Info</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1 col-span-2">
             <label className="text-sm font-medium">Store Name</label>
             <Input value={settings.storeName} onChange={e => setSettings({ ...settings, storeName: e.target.value })} />
@@ -150,12 +150,12 @@ export default function AdminSettings() {
       </div>
 
       {/* ── SHIPPING ── */}
-      <div className="bg-card border rounded-xl p-6 space-y-5">
+      <div className="bg-card border rounded-xl p-4 sm:p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold flex items-center gap-2"><Truck className="h-4 w-4 text-primary" /> Shipping & Charges</h3>
           <button onClick={resetShipping} className="text-xs text-muted-foreground hover:text-foreground underline">Reset to defaults</button>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-1.5"><Package className="h-3.5 w-3.5 text-blue-500" /> Shipping Fee (₹)</label>
             <Input type="number" min="0" value={shipping.shippingFee} onChange={e => setShipping({ ...shipping, shippingFee: Number(e.target.value) })} />
@@ -199,7 +199,7 @@ export default function AdminSettings() {
       </div>
 
       {/* ── SOCIAL MEDIA LINKS ── */}
-      <div className="bg-card border rounded-xl p-6 space-y-5">
+      <div className="bg-card border rounded-xl p-4 sm:p-6 space-y-5">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-semibold flex items-center gap-2">

@@ -139,7 +139,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="page-enter p-6 space-y-6">
+    <div className="page-enter p-3 sm:p-6 space-y-6">
       <div>
         <h1 className="font-serif text-2xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground text-sm">
@@ -271,7 +271,7 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b text-muted-foreground">
                   <th className="text-left py-2 pr-4 font-medium">Order</th>

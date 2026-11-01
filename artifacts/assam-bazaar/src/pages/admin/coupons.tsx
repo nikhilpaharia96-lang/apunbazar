@@ -81,8 +81,8 @@ export default function AdminCoupons() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-3 sm:p-6 space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-serif text-2xl font-bold">Coupons</h1>
           <p className="text-muted-foreground text-sm">
@@ -97,7 +97,7 @@ export default function AdminCoupons() {
       {showForm && (
         <div className="bg-card border rounded-xl p-5 space-y-4">
           <h3 className="font-semibold">New Coupon</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-sm font-medium">Coupon Code</label>
               <Input
@@ -152,8 +152,8 @@ export default function AdminCoupons() {
         </div>
       )}
 
-      <div className="bg-card border rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-card border rounded-xl overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-muted/50 border-b">
             <tr>
               <th className="text-left px-4 py-3 font-medium">Code</th>

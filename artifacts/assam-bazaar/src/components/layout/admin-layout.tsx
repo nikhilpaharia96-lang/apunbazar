@@ -1,8 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Package, ShoppingBag, Tag, ArrowLeft, LogOut, User, Settings, BarChart3, Ticket, Shield, SlidersHorizontal, Image, Layout, Users } from "lucide-react";
+import { Menu, X, LayoutDashboard, Package, ShoppingBag, Tag, ArrowLeft, LogOut, User, Settings, BarChart3, Ticket, Shield, SlidersHorizontal, Image, Layout, Users } from "lucide-react";
 import { adminLogout, getAdminEmail, isAdminLoggedIn } from "@/lib/admin-auth";
 import { getStaffSession, hasPermission, staffLogout, type Permission } from "@/lib/staff-auth";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Each nav item is tagged with the staff Permission required to view it.
 // Master admin (isAdminLoggedIn) always bypasses this and sees everything.
@@ -24,6 +24,16 @@ const navItems: { href: string; label: string; icon: any; exact?: boolean; badge
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close the mobile drawer whenever the page changes.
+  useEffect(() => { setMenuOpen(false); }, [location]);
+
+  // Lock body scroll while the drawer is open on mobile.
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [menuOpen]);
 
   const isMasterAdmin = isAdminLoggedIn();
   const staffSession  = !isMasterAdmin ? getStaffSession() : null;
@@ -78,8 +88,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)]">
-      <aside className="w-56 flex-shrink-0 bg-gray-950 text-white flex flex-col border-r border-gray-800">
-        <div className="p-4 border-b border-gray-800">
+      {/* Mobile overlay */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/60 lg:hidden" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+      )}
+
+      {/* Sidebar: slide-in drawer on mobile, static column on desktop */}
+      <aside className={`fixed inset-y-0 left-0 z-[61] w-64 max-w-[85vw] transform transition-transform duration-200 ease-out
+        lg:static lg:z-auto lg:w-56 lg:max-w-none lg:translate-x-0 lg:flex-shrink-0
+        bg-gray-950 text-white flex flex-col border-r border-gray-800
+        ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="p-4 border-b border-gray-800 relative">
+          <button onClick={() => setMenuOpen(false)} aria-label="Close menu"
+            className="lg:hidden absolute top-3 right-3 p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800">
+            <X className="h-5 w-5" />
+          </button>
           <p className="font-serif font-bold text-white text-sm">Awesomeassam</p>
           <p className="text-gray-500 text-xs">{isMasterAdmin ? "Master Admin" : "Staff Access"}</p>
           <Link href="/">
@@ -94,7 +117,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             const isActive = item.exact ? location === item.href : location.startsWith(item.href);
             return (
               <Link key={item.href} href={item.href}>
-                <div className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                <div className={`flex items-center gap-3 px-3 py-2.5 lg:py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
                   isActive ? "bg-primary text-white" : "text-gray-400 hover:bg-gray-800 hover:text-white"
                 }`}>
                   <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -136,7 +159,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-auto bg-background">{children}</main>
+      <div className="flex-1 min-w-0 flex flex-col bg-background">
+        {/* Mobile top bar with menu button */}
+        <div className="lg:hidden sticky top-16 z-40 flex items-center gap-3 h-12 px-3 bg-gray-950 text-white border-b border-gray-800">
+          <button onClick={() => setMenuOpen(true)} aria-label="Open menu"
+            className="p-2 -ml-1 rounded-lg hover:bg-gray-800 active:bg-gray-800">
+            <Menu className="h-5 w-5" />
+          </button>
+          <span className="text-sm font-semibold truncate">{currentNavItem?.label ?? "Admin"}</span>
+        </div>
+        <main className="flex-1 min-w-0 overflow-x-hidden">{children}</main>
+      </div>
     </div>
   );
 }

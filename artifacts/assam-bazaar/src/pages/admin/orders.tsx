@@ -96,8 +96,8 @@ export default function AdminOrders() {
 
   return (
     <>
-      <div className="page-enter p-6 space-y-6">
-        <div className="flex items-center justify-between gap-4">
+      <div className="page-enter p-3 sm:p-6 space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-serif text-2xl font-bold">Orders</h1>
             <p className="text-muted-foreground text-sm">{(data as any)?.total ?? 0} orders total</p>
@@ -117,7 +117,7 @@ export default function AdminOrders() {
 
         <div className="border rounded-xl overflow-hidden bg-card">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-muted/50 border-b">
                 <tr>
                   <th className="text-left px-4 py-3 font-medium">Order</th>

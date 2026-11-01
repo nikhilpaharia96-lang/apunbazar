@@ -123,7 +123,7 @@ export default function StaffManagement() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="p-3 sm:p-6 space-y-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -167,7 +167,7 @@ export default function StaffManagement() {
 
       {/* ── ADD/EDIT FORM ── */}
       {showForm && (
-        <div className="bg-card border-2 border-primary/20 rounded-2xl p-6 space-y-5">
+        <div className="bg-card border-2 border-primary/20 rounded-2xl p-4 sm:p-6 space-y-5">
           <h3 className="font-semibold text-lg">{editingId ? "Edit Staff Member" : "Add New Staff Member"}</h3>
 
           <div className="grid sm:grid-cols-2 gap-4">

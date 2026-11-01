@@ -70,7 +70,7 @@ export default function BannerManager() {
   }
 
   return (
-    <div className="page-enter p-6 space-y-6 max-w-4xl mx-auto">
+    <div className="page-enter p-3 sm:p-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-2xl font-bold">Products Page Banners</h1>
