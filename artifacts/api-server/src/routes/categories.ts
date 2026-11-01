@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, mainCategoriesTable, subCategoriesTable, childCategoriesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { requireAdminAuth } from "../middleware/admin-auth";
 
 const router: IRouter = Router();
 
@@ -15,7 +16,7 @@ router.get("/main", async (_req, res): Promise<void> => {
   }
 });
 
-router.post("/main", async (req, res): Promise<void> => {
+router.post("/main", requireAdminAuth, async (req, res): Promise<void> => {
   try {
     const { name, slug, description, imageUrl } = req.body;
     if (!name || !slug) { res.status(400).json({ error: "name and slug required" }); return; }
@@ -27,7 +28,7 @@ router.post("/main", async (req, res): Promise<void> => {
   }
 });
 
-router.put("/main/:id", async (req, res): Promise<void> => {
+router.put("/main/:id", requireAdminAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
@@ -41,7 +42,7 @@ router.put("/main/:id", async (req, res): Promise<void> => {
   }
 });
 
-router.delete("/main/:id", async (req, res): Promise<void> => {
+router.delete("/main/:id", requireAdminAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
@@ -67,7 +68,7 @@ router.get("/sub", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/sub", async (req, res): Promise<void> => {
+router.post("/sub", requireAdminAuth, async (req, res): Promise<void> => {
   try {
     const { name, slug, description, imageUrl, mainCategoryId } = req.body;
     if (!name || !slug || !mainCategoryId) { res.status(400).json({ error: "name, slug, mainCategoryId required" }); return; }
@@ -79,7 +80,7 @@ router.post("/sub", async (req, res): Promise<void> => {
   }
 });
 
-router.put("/sub/:id", async (req, res): Promise<void> => {
+router.put("/sub/:id", requireAdminAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
@@ -93,7 +94,7 @@ router.put("/sub/:id", async (req, res): Promise<void> => {
   }
 });
 
-router.delete("/sub/:id", async (req, res): Promise<void> => {
+router.delete("/sub/:id", requireAdminAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
@@ -119,7 +120,7 @@ router.get("/child", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/child", async (req, res): Promise<void> => {
+router.post("/child", requireAdminAuth, async (req, res): Promise<void> => {
   try {
     const { name, slug, description, imageUrl, subCategoryId } = req.body;
     if (!name || !slug || !subCategoryId) { res.status(400).json({ error: "name, slug, subCategoryId required" }); return; }
@@ -131,7 +132,7 @@ router.post("/child", async (req, res): Promise<void> => {
   }
 });
 
-router.put("/child/:id", async (req, res): Promise<void> => {
+router.put("/child/:id", requireAdminAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
@@ -145,7 +146,7 @@ router.put("/child/:id", async (req, res): Promise<void> => {
   }
 });
 
-router.delete("/child/:id", async (req, res): Promise<void> => {
+router.delete("/child/:id", requireAdminAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
