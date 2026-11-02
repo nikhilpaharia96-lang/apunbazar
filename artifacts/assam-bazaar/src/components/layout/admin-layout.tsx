@@ -87,7 +87,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     : navItems.filter(item => hasPermission(item.permission));
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
+    <div className="flex min-h-[100dvh]">
       {/* Mobile overlay */}
       {menuOpen && (
         <div className="fixed inset-0 z-[60] bg-black/60 lg:hidden" onClick={() => setMenuOpen(false)} aria-hidden="true" />
@@ -161,7 +161,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
       <div className="flex-1 min-w-0 flex flex-col bg-background">
         {/* Mobile top bar with menu button */}
-        <div className="lg:hidden sticky top-16 z-40 flex items-center gap-3 h-12 px-3 bg-gray-950 text-white border-b border-gray-800">
+        <div className="lg:hidden sticky top-0 z-40 flex items-center gap-3 h-12 px-3 bg-gray-950 text-white border-b border-gray-800">
           <button onClick={() => setMenuOpen(true)} aria-label="Open menu"
             className="p-2 -ml-1 rounded-lg hover:bg-gray-800 active:bg-gray-800">
             <Menu className="h-5 w-5" />
