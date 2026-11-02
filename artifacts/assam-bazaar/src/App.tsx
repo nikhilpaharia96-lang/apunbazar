@@ -126,9 +126,7 @@ function MainLayout({ children }: { children: ReactNode }) {
     <div className="flex flex-col min-h-[100dvh]">
       <Navbar />
       <main className="flex-1 pb-16 lg:pb-0">{children}</main>
-      <div className="pb-16 lg:pb-0">
-        <Footer />
-      </div>
+      <Footer />
       <BottomNav />
     </div>
   );
