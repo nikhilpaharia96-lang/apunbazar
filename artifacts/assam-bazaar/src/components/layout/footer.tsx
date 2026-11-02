@@ -438,8 +438,8 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Mobile nav spacer */}
-      <div style={{ height:16 }} />
+      {/* Spacer so the fixed bottom nav (+ phone home-indicator area) never covers the copyright */}
+      <div className="h-[calc(4.5rem+env(safe-area-inset-bottom))] lg:h-4" />
     </footer>
   );
 }
