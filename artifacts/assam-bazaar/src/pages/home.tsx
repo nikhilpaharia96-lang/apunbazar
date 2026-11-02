@@ -202,13 +202,6 @@ function HeroSlider() {
       ))}
 
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(to right, transparent, ${s.accent}cc, transparent)`, zIndex: 2 }} />
-      <svg style={{ position: "absolute", right: "8%", top: "18%", zIndex: 2, opacity: 0.15, animation: "ab-rotateleaf 4s ease-in-out infinite" }} width="90" height="90" viewBox="0 0 100 100">
-        <path d="M50 10 C70 10,90 30,90 50 C90 70,70 90,50 90 C30 90,10 70,10 50 C10 30,30 10,50 10Z" fill={s.accent}/>
-        <path d="M50 10 Q60 40 50 90" stroke={s.bgColor} strokeWidth="2.5" fill="none"/>
-        <path d="M50 30 Q65 40 80 38" stroke={s.bgColor} strokeWidth="2" fill="none"/>
-        <path d="M50 50 Q65 55 78 50" stroke={s.bgColor} strokeWidth="2" fill="none"/>
-        <path d="M50 68 Q60 70 72 65" stroke={s.bgColor} strokeWidth="1.5" fill="none"/>
-      </svg>
 
       <div style={{ position: "relative", zIndex: 3, display: "flex", alignItems: "center", minHeight: "86vh", padding: "100px 22px 80px" }}>
         <div style={{ maxWidth: 520, opacity: fading ? 0 : 1, transform: fading ? "translateY(16px)" : "translateY(0)", transition: "opacity .38s, transform .38s" }}>
