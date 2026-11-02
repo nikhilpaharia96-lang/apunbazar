@@ -173,7 +173,7 @@ export default function CategoryBannerManager() {
   const fb = cfg?.featuredBanner ?? {};
 
   return (
-    <div className="page-enter p-3 sm:p-6 space-y-6 max-w-4xl mx-auto">
+    <div className="page-enter p-4 sm:p-6 space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -206,7 +206,7 @@ export default function CategoryBannerManager() {
       {/* Editor */}
       {cfg && (
         <Card>
-          <CardContent className="p-3 sm:p-6 space-y-6">
+          <CardContent className="p-4 sm:p-6 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-lg">{catInfo?.emoji} {catInfo?.name}</h2>
               <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)} className="gap-2">

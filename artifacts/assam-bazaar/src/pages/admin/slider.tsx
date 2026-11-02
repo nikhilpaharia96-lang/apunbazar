@@ -93,7 +93,7 @@ export default function SliderManager() {
   const previewSlide = slides.find(s => s.id === preview);
 
   return (
-    <div className="page-enter p-3 sm:p-6 space-y-6 max-w-5xl mx-auto">
+    <div className="page-enter p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

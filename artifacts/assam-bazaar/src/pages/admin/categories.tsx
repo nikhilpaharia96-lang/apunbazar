@@ -139,7 +139,7 @@ export default function AdminCategories() {
   }
 
   return (
-    <div className="page-enter p-3 sm:p-6 space-y-6">
+    <div className="page-enter p-4 sm:p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-serif text-2xl font-bold">Categories</h1>

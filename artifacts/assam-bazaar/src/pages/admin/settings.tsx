@@ -115,7 +115,7 @@ export default function AdminSettings() {
   const codExample      = shipping.codEnabled ? shipping.codFee : 0;
 
   return (
-    <div className="p-3 sm:p-6 space-y-6 max-w-2xl">
+    <div className="p-4 sm:p-6 space-y-6 max-w-2xl">
       <div>
         <h1 className="font-serif text-2xl font-bold">Settings</h1>
         <p className="text-muted-foreground text-sm">Manage your store configuration</p>
