@@ -1,0 +1,75 @@
+/* FloatingParticles — transforms + opacity only (compositor-friendly). */
+
+.floating-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 0; /* behind hero content */
+  overflow: hidden;
+  pointer-events: none;
+  contain: layout paint;
+}
+
+.floating-particles[data-paused="true"] .fp,
+.floating-particles[data-paused="true"] .fp__dot {
+  animation-play-state: paused;
+}
+
+/* Drift path: a slow, looping wander around the particle's home position. */
+.fp {
+  position: absolute;
+  display: block;
+  animation: fp-drift var(--dur, 30s) ease-in-out var(--delay, 0s) infinite;
+  will-change: transform;
+}
+
+.fp__dot {
+  display: block;
+  border-radius: 9999px;
+  background: rgb(201, 168, 76);
+  opacity: var(--o, 0.5);
+  animation: fp-twinkle var(--tw, 6s) ease-in-out infinite;
+}
+.fp__dot--glow {
+  box-shadow: 0 0 8px 1px rgba(201, 168, 76, 0.5);
+}
+
+/* Tones for the dust variant */
+.fp__dot--cream {
+  background: rgb(240, 214, 140);
+  box-shadow: 0 0 7px 1px rgba(240, 214, 140, 0.6);
+}
+.fp__dot--white {
+  background: #fff;
+  box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.95), 0 0 12px 2px rgba(240, 214, 140, 0.45);
+}
+
+@keyframes fp-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(var(--dx), calc(var(--dy) * -0.6), 0); }
+  50% { transform: translate3d(calc(var(--dx) * -0.5), var(--dy), 0); }
+  75% { transform: translate3d(calc(var(--dx) * 0.6), calc(var(--dy) * 0.4), 0); }
+}
+
+@keyframes fp-twinkle {
+  0%, 100% { opacity: calc(var(--o, 0.5) * 0.45); }
+  50% { opacity: var(--o, 0.5); }
+}
+
+/* Fewer particles on phones/tablets. */
+@media (max-width: 767px) {
+  .fp--desktop {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fp,
+  .fp__dot {
+    animation: none;
+  }
+}
+
+/* Hero on ApunBazar: sit above the slide images/overlays but below the text (z-index 3). */
+.floating-particles--hero {
+  z-index: 2;
+}

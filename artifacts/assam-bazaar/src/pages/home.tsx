@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard from "@/components/product-card";
+import FloatingParticles from "@/components/floating-particles";
 import React from "react";
 
 const G = "#1a5a32";
@@ -200,6 +201,10 @@ function HeroSlider() {
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 100, background: "linear-gradient(to top, rgba(0,0,0,0.40), transparent)" }} />
         </div>
       ))}
+
+      {/* Floating golden particles (same effect as the portfolio hero) */}
+      <FloatingParticles className="floating-particles--hero" />
+      <FloatingParticles className="floating-particles--hero" variant="dust" count={30} />
 
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(to right, transparent, ${s.accent}cc, transparent)`, zIndex: 2 }} />
 
