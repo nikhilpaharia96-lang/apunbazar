@@ -1,0 +1,92 @@
+/* FloatingLeaves — transforms + opacity only (compositor-friendly). */
+
+.floating-leaves {
+  position: absolute;
+  inset: 0;
+  z-index: 210; /* above the fixed navbar (z-200) so leaves fall over it, not from behind it */
+  overflow: hidden;
+  pointer-events: none;
+  contain: layout paint;
+  --sy: 0;
+}
+
+/* Paused while the hero is off-screen. */
+.floating-leaves[data-paused="true"] .leaf__fall,
+.floating-leaves[data-paused="true"] .leaf__sway,
+.floating-leaves[data-paused="true"] .leaf__img {
+  animation-play-state: paused;
+}
+
+/* Parallax layer: far leaves lag behind the page, near leaves rush past it. */
+.leaf {
+  position: absolute;
+  top: 0;
+  left: var(--x);
+  width: var(--size);
+  height: 100%;
+  transform: translate3d(0, calc(var(--sy) * var(--par) * 1px), 0);
+  will-change: transform;
+}
+
+/* Fall box is as tall as the container, so translateY(%) travels the container height. */
+.leaf__fall {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: leaf-fall var(--dur) linear var(--delay) infinite both;
+  will-change: transform, opacity;
+}
+
+.leaf__sway {
+  width: 100%;
+  animation: leaf-sway var(--sway-dur) ease-in-out var(--sway-delay) infinite alternate;
+  will-change: transform;
+}
+
+.leaf__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  scale: var(--flip) 1;
+  filter: blur(var(--blur));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.leaf__img--spin {
+  animation: leaf-spin var(--spin) linear infinite;
+}
+
+/* Wind: slight gusts (the horizontal progress is not linear with the fall) → left-to-right drift. */
+@keyframes leaf-fall {
+  0%   { transform: translate3d(0, -22%, 0); opacity: 0; }
+  8%   { opacity: var(--o); }
+  35%  { transform: translate3d(calc(var(--drift) * 0.18), 34%, 0); }
+  65%  { transform: translate3d(calc(var(--drift) * 0.7), 66%, 0); }
+  90%  { opacity: var(--o); }
+  100% { transform: translate3d(var(--drift), 106%, 0); opacity: 0; }
+}
+
+@keyframes leaf-sway {
+  from { transform: translate3d(calc(var(--sway) * -1), 0, 0) rotate(calc(var(--rot) * -1)); }
+  to   { transform: translate3d(var(--sway), 0, 0) rotate(var(--rot)); }
+}
+
+@keyframes leaf-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Phones: gentler — slightly more transparent, no heavy blur on the large foreground leaves. */
+@media (max-width: 767px) {
+  .floating-leaves { opacity: 0.85; }
+  .leaf__img { filter: blur(min(var(--blur), 2.5px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-leaves { display: none; }
+}
+
+/* Hero on ApunBazar: leaves fall over the slide images but stay behind the hero text (z-index 3). */
+.floating-leaves--hero {
+  z-index: 2;
+}

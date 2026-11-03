@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard from "@/components/product-card";
 import FloatingParticles from "@/components/floating-particles";
+import FloatingLeaves from "@/components/floating-leaves";
 import React from "react";
 
 const G = "#1a5a32";
@@ -203,6 +204,8 @@ function HeroSlider() {
       ))}
 
       {/* Floating golden particles (same effect as the portfolio hero) */}
+      {/* Falling leaves (same effect as the portfolio hero) */}
+      <FloatingLeaves className="floating-leaves--hero" />
       <FloatingParticles className="floating-particles--hero" />
       <FloatingParticles className="floating-particles--hero" variant="dust" count={30} />
 
