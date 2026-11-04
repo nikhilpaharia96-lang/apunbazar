@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { Download, X } from "lucide-react";
 
 const G = "#1a5a32";
-const GOLD = "#c9a84c";
 const DISMISS_KEY = "ab_install_dismissed_at";
+const INSTALLED_KEY = "ab_installed";
 const DISMISS_DAYS = 7;
+const SHOW_DELAY_MS = 3000;
 
 type BIPEvent = Event & {
   prompt: () => Promise<void>;
@@ -17,14 +19,14 @@ function isStandalone() {
   );
 }
 
-function isIOS() {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
-}
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isMobile = () => /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 
-function recentlyDismissed() {
+function shouldStaySilent() {
   try {
+    if (localStorage.getItem(INSTALLED_KEY)) return true;
     const t = Number(localStorage.getItem(DISMISS_KEY) || 0);
-    return t && Date.now() - t < DISMISS_DAYS * 86400000;
+    return !!t && Date.now() - t < DISMISS_DAYS * 86400000;
   } catch {
     return false;
   }
@@ -33,22 +35,23 @@ function recentlyDismissed() {
 export default function InstallAppPrompt() {
   const [deferred, setDeferred] = useState<BIPEvent | null>(null);
   const [visible, setVisible] = useState(false);
-  const [showIOSHelp, setShowIOSHelp] = useState(false);
-  const ios = typeof navigator !== "undefined" && isIOS();
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
-    if (isStandalone() || recentlyDismissed()) return;
+    if (isStandalone() || shouldStaySilent()) return;
 
     const onBIP = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BIPEvent);
     };
-    const onInstalled = () => setVisible(false);
+    const onInstalled = () => {
+      setVisible(false);
+      try { localStorage.setItem(INSTALLED_KEY, "1"); } catch {}
+    };
     window.addEventListener("beforeinstallprompt", onBIP);
     window.addEventListener("appinstalled", onInstalled);
 
-    // 3 sec baad dikhao (iOS pe beforeinstallprompt nahi aata, isliye seedha)
-    const t = setTimeout(() => setVisible(true), 3000);
+    const t = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
     return () => {
       clearTimeout(t);
       window.removeEventListener("beforeinstallprompt", onBIP);
@@ -56,74 +59,119 @@ export default function InstallAppPrompt() {
     };
   }, []);
 
+  // Banner dikhte waqt WhatsApp button ko upar shift karne ke liye (overlap nahi hoga)
+  const shown = visible && (!!deferred || isMobile());
+  useEffect(() => {
+    const el = document.documentElement;
+    if (shown) el.setAttribute("data-install-banner", "1");
+    else el.removeAttribute("data-install-banner");
+    return () => el.removeAttribute("data-install-banner");
+  }, [shown]);
+
   const close = () => {
     setVisible(false);
+    setShowHelp(false);
     try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
   };
 
   const install = async () => {
     if (deferred) {
-      await deferred.prompt();
-      const { outcome } = await deferred.userChoice;
-      setDeferred(null);
-      if (outcome === "accepted") setVisible(false);
-      else close();
-    } else if (ios) {
-      setShowIOSHelp((v) => !v);
+      try {
+        await deferred.prompt();
+        const { outcome } = await deferred.userChoice;
+        setDeferred(null);
+        if (outcome === "accepted") setVisible(false);
+        else close();
+      } catch {
+        setShowHelp(true);
+      }
+    } else {
+      // Prompt available nahi (iOS Safari, Firefox, in-app browsers) — manual steps dikhao
+      setShowHelp((v) => !v);
     }
   };
 
-  // Sirf tab dikhao jab install possible ho (Chrome/Edge/Android) ya iOS
-  if (!visible || (!deferred && !ios)) return null;
+  if (!shown) return null;
 
   return (
     <div
-      role="dialog"
-      aria-label="ApunBazar app download karein"
-      className="fixed left-3 bottom-[76px] lg:left-6 lg:bottom-8 z-50 w-[min(320px,calc(100vw-24px))] animate-in slide-in-from-left-8 fade-in duration-500"
+      role="region"
+      aria-label="ApunBazar app download"
+      className="fixed z-50 left-2.5 right-2.5 bottom-[calc(env(safe-area-inset-bottom)+68px)] lg:left-6 lg:right-auto lg:bottom-8 lg:w-[380px] animate-in slide-in-from-bottom-4 fade-in duration-300 motion-reduce:animate-none"
     >
-      <div
-        className="relative flex items-center gap-3 rounded-2xl bg-white p-3 pr-4 shadow-2xl"
-        style={{ border: `1px solid ${GOLD}55` }}
-      >
-        <button
-          onClick={close}
-          aria-label="Band karein"
-          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-neutral-800 text-white text-sm leading-none flex items-center justify-center"
+      {showHelp && (
+        <p
+          role="status"
+          className="absolute bottom-full mb-2 left-0 right-0 rounded-xl bg-white px-3 py-2 text-xs leading-snug text-neutral-700 shadow-lg"
         >
-          ×
-        </button>
-
-        <img
-          src={`${import.meta.env.BASE_URL}icon-192.png`}
-          alt="ApunBazar"
-          className="h-12 w-12 rounded-xl object-contain border border-neutral-200"
-        />
-
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold leading-tight" style={{ color: G }}>
-            ApunBazar App
-          </p>
-          <p className="text-xs text-neutral-600 leading-snug">
-            Download karein — tez shopping, aasan orders
-          </p>
-        </div>
-
-        <button
-          onClick={install}
-          className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white"
-          style={{ background: G }}
-        >
-          {deferred ? "Install" : "Kaise?"}
-        </button>
-      </div>
-
-      {showIOSHelp && (
-        <p className="mt-2 rounded-xl bg-white p-3 text-xs text-neutral-700 shadow-lg">
-          Safari mein neeche <b>Share</b> (⬆️) dabayein, phir{" "}
-          <b>“Add to Home Screen”</b> chunein.
+          {isIOS() ? (
+            <>Safari mein <b>Share</b> (⬆️) dabayein, phir <b>“Add to Home Screen”</b> chunein.</>
+          ) : (
+            <>Browser menu (⋮) kholein, phir <b>“Install app”</b> ya <b>“Add to Home screen”</b> chunein.</>
+          )}
         </p>
       )}
+
+      <div
+        className="relative overflow-hidden rounded-[20px] bg-white"
+        style={{
+          boxShadow: "0 8px 28px rgba(16,56,30,.22), 0 2px 6px rgba(0,0,0,.08)",
+          border: "1px solid rgba(26,90,50,.10)",
+        }}
+      >
+        {/* Decorative Assam tea-garden art */}
+        <img
+          src={`${import.meta.env.BASE_URL}banner-art.webp`}
+          alt=""
+          aria-hidden="true"
+          width={1000}
+          height={333}
+          decoding="async"
+          className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover object-bottom"
+        />
+
+        <div className="relative z-10 flex items-center gap-2.5 py-2.5 pl-3 pr-2">
+          <img
+            src={`${import.meta.env.BASE_URL}icon-192.png`}
+            alt="ApunBazar"
+            width={44}
+            height={44}
+            className="h-11 w-11 shrink-0 rounded-xl bg-white object-contain shadow-md"
+          />
+
+          <div className="min-w-0 flex-1">
+            <p
+              className="flex items-center gap-1.5 text-[14px] font-extrabold leading-tight"
+              style={{ color: G }}
+            >
+              ApunBazar App
+              <span className="hidden min-[360px]:inline-block rounded-md bg-orange-500 px-1.5 py-[1px] text-[9px] font-bold tracking-wide text-white">
+                NEW
+              </span>
+            </p>
+            <p className="mt-0.5 text-[11px] leading-snug text-neutral-600">
+              Download karein — tez shopping, aasan orders
+            </p>
+          </div>
+
+          <button
+            onClick={install}
+            className="flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[13px] font-semibold text-white shadow-md active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            style={{ background: `linear-gradient(180deg, #23803f, ${G})`, outlineColor: G }}
+          >
+            <Download size={15} aria-hidden="true" />
+            Install
+          </button>
+
+          <button
+            onClick={close}
+            aria-label="Banner band karein"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100/90 text-neutral-800 active:scale-95 focus-visible:outline focus-visible:outline-2"
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
