@@ -23,6 +23,7 @@ import { ScrollProgress } from "@/components/animations/ScrollProgress";
 import { MouseGlow } from "@/components/animations/MouseGlow";
 import { BlurOrbs } from "@/components/animations/BlurOrbs";
 import { WhatsAppFloat } from "@/components/WhatsAppButtons";
+import InstallAppPrompt from "@/components/InstallAppPrompt";
 
 // ── Public pages — lazy loaded ─────────────────────────────────────────────
 const Products      = lazy(() => import("@/pages/products/index"));
@@ -251,6 +252,7 @@ export default function App() {
             <Router />
           </WouterRouter>
           <WhatsAppFloatWrapper />
+          <InstallPromptWrapper />
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
@@ -264,4 +266,11 @@ function WhatsAppFloatWrapper() {
   const isStaff = location.startsWith("/staff");
   if (isAdmin || isStaff) return null;
   return <WhatsAppFloat />;
+}
+
+// Install prompt sirf homepage par (left side)
+function InstallPromptWrapper() {
+  const [location] = useLocation();
+  if (location !== "/") return null;
+  return <InstallAppPrompt />;
 }

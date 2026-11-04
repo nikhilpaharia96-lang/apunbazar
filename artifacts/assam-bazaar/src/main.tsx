@@ -11,3 +11,10 @@ createRoot(root).render(
     <App />
   </StrictMode>
 );
+
+// Service worker — app install support (sirf production mein)
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {});
+  });
+}
