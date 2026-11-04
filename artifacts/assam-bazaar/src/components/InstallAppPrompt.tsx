@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 
 const G = "#1a5a32";
-const DISMISS_KEY = "ab_install_dismissed_at";
+const DISMISS_KEY = "ab_install_last_shown_at";
 const INSTALLED_KEY = "ab_installed";
-const DISMISS_DAYS = 7;
+const SILENT_HOURS = 24; // ek baar dikhne ke baad 24 ghante tak dobara nahi
 const SHOW_DELAY_MS = 3000;
 
 type BIPEvent = Event & {
@@ -26,7 +26,7 @@ function shouldStaySilent() {
   try {
     if (localStorage.getItem(INSTALLED_KEY)) return true;
     const t = Number(localStorage.getItem(DISMISS_KEY) || 0);
-    return !!t && Date.now() - t < DISMISS_DAYS * 86400000;
+    return !!t && Date.now() - t < SILENT_HOURS * 3600000;
   } catch {
     return false;
   }
@@ -51,7 +51,11 @@ export default function InstallAppPrompt() {
     window.addEventListener("beforeinstallprompt", onBIP);
     window.addEventListener("appinstalled", onInstalled);
 
-    const t = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
+    const t = setTimeout(() => {
+      setVisible(true);
+      // Popup dikhte hi time save karo — 24 ghante baad hi dobara aayega
+      try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
+    }, SHOW_DELAY_MS);
     return () => {
       clearTimeout(t);
       window.removeEventListener("beforeinstallprompt", onBIP);
