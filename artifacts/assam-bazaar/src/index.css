@@ -200,10 +200,5 @@
   }
 }
 
-/* Install banner dikhte waqt (mobile) WhatsApp button banner ke upar rahe — overlap nahi */
-@media (max-width: 1023px) {
-  .wa-float { transition: bottom .25s ease; }
-  html[data-install-banner] .wa-float {
-    bottom: calc(env(safe-area-inset-bottom) + 152px);
-  }
-}
+/* WhatsApp button apni jagah rahega; Download banner uske upar dikhega */
+
