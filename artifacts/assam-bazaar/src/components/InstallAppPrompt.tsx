@@ -117,10 +117,10 @@ export default function InstallAppPrompt() {
       )}
 
       <div
-        className="relative overflow-hidden rounded-[20px] bg-white"
+        className="relative overflow-hidden rounded-[999px] bg-white"
         style={{
-          boxShadow: "0 8px 28px rgba(16,56,30,.22), 0 2px 6px rgba(0,0,0,.08)",
-          border: "1px solid rgba(26,90,50,.10)",
+          boxShadow: "0 8px 28px rgba(16,56,30,.28), 0 2px 6px rgba(0,0,0,.10)",
+          border: "1px solid rgba(26,90,50,.12)",
         }}
       >
         {/* Decorative Assam tea-garden art */}
@@ -134,45 +134,48 @@ export default function InstallAppPrompt() {
           className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover object-bottom"
         />
 
-        <div className="relative z-10 flex items-center gap-2.5 py-2.5 pl-3 pr-2">
+        <div className="relative z-10 flex items-center gap-2 py-2 pl-2.5 pr-2">
           <img
             src={`${import.meta.env.BASE_URL}icon-192.png`}
             alt="ApunBazar"
-            width={44}
-            height={44}
-            className="h-11 w-11 shrink-0 rounded-xl bg-white object-contain shadow-md"
+            width={48}
+            height={48}
+            className="h-12 w-12 shrink-0 rounded-2xl bg-white object-contain shadow-md"
           />
+
+          <span aria-hidden="true" className="hidden min-[380px]:block h-10 w-px shrink-0 bg-neutral-300/80" />
 
           <div className="min-w-0 flex-1">
             <p
-              className="flex items-center gap-1.5 text-[14px] font-extrabold leading-tight"
+              className="flex items-center gap-1.5 text-[14.5px] font-extrabold leading-tight"
               style={{ color: G }}
             >
               ApunBazar App
-              <span className="hidden min-[360px]:inline-block rounded-md bg-orange-500 px-1.5 py-[1px] text-[9px] font-bold tracking-wide text-white">
+              <span className="hidden min-[400px]:inline-block rounded-lg bg-orange-500 px-1.5 py-[2px] text-[9px] font-bold tracking-wide text-white">
                 NEW
               </span>
             </p>
-            <p className="mt-0.5 text-[11px] leading-snug text-neutral-600">
-              Download karein — tez shopping, aasan orders
+            <p className="mt-0.5 text-[10.5px] font-medium leading-[1.25] text-neutral-500">
+              Download karein —{" "}
+              <span className="font-semibold text-neutral-800">tez shopping, aasan orders</span>
             </p>
           </div>
 
           <button
             onClick={install}
-            className="flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[13px] font-semibold text-white shadow-md active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-bold text-white shadow-lg active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             style={{ background: `linear-gradient(180deg, #23803f, ${G})`, outlineColor: G }}
           >
-            <Download size={15} aria-hidden="true" />
-            Install
+            <Download size={16} aria-hidden="true" />
+            Install App
           </button>
 
           <button
             onClick={close}
             aria-label="Banner band karein"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100/90 text-neutral-800 active:scale-95 focus-visible:outline focus-visible:outline-2"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100/95 text-neutral-900 active:scale-95 focus-visible:outline focus-visible:outline-2"
           >
-            <X size={16} aria-hidden="true" />
+            <X size={17} strokeWidth={2.5} aria-hidden="true" />
           </button>
         </div>
       </div>
