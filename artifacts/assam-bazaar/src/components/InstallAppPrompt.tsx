@@ -63,7 +63,7 @@ export default function InstallAppPrompt() {
     };
   }, []);
 
-  // Download banner WhatsApp button ke upar dikhta hai (WhatsApp apni jagah par rehta hai)
+  // Banner dikhte waqt WhatsApp button ko upar shift karne ke liye (overlap nahi hoga)
   const shown = visible && (!!deferred || isMobile());
   useEffect(() => {
     const el = document.documentElement;
@@ -101,7 +101,7 @@ export default function InstallAppPrompt() {
     <div
       role="region"
       aria-label="ApunBazar app download"
-      className="fixed z-50 left-2.5 right-2.5 bottom-[calc(env(safe-area-inset-bottom)+172px)] lg:left-6 lg:right-auto lg:bottom-8 lg:w-[380px] animate-in slide-in-from-bottom-4 fade-in duration-300 motion-reduce:animate-none"
+      className="fixed z-50 left-2.5 right-2.5 bottom-[calc(env(safe-area-inset-bottom)+68px)] lg:left-6 lg:right-auto lg:bottom-8 lg:w-[380px] animate-in slide-in-from-bottom-4 fade-in duration-300 motion-reduce:animate-none"
     >
       {showHelp && (
         <p
