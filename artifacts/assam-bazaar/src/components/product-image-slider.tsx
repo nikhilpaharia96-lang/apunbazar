@@ -25,20 +25,38 @@ export function ProductImageSlider({
   interval = 3000,
   className = "",
 }: ProductImageSliderProps) {
-  const slides = [...new Set(images.filter(Boolean))];
+  // Broken / 404 images ko hata do taaki card blank na dikhe
+  const [failed, setFailed] = useState<string[]>([]);
+  const onImgError = useCallback((src: string) => {
+    setFailed((prev) => (prev.includes(src) ? prev : [...prev, src]));
+  }, []);
+  const slides = [...new Set(images.filter(Boolean))].filter((u) => !failed.includes(u));
 
   if (slides.length <= 1) {
     return (
       <div style={rootStyle} className={className}>
         <style>{keyframeCSS}</style>
-        {slides[0] && (
+        {slides[0] ? (
           <img
             src={slides[0]}
             alt={productName}
             loading="lazy"
             decoding="async"
             style={imgStyle}
+            onError={() => onImgError(slides[0])}
           />
+        ) : (
+          <div
+            aria-label={productName}
+            style={{
+              position: "absolute", inset: 0, display: "flex",
+              alignItems: "center", justifyContent: "center",
+              background: "linear-gradient(135deg,#f3efe6,#e8e0cf)",
+              color: "#9a8a5c", fontSize: 12, fontWeight: 600, textAlign: "center", padding: 12,
+            }}
+          >
+            ApunBazar
+          </div>
         )}
       </div>
     );
@@ -50,6 +68,7 @@ export function ProductImageSlider({
       productName={productName}
       interval={interval}
       className={className}
+      onImgError={onImgError}
     />
   );
 }
@@ -59,11 +78,13 @@ function MultiSlider({
   productName,
   interval,
   className,
+  onImgError,
 }: {
   slides: string[];
   productName: string;
   interval: number;
   className: string;
+  onImgError: (src: string) => void;
 }) {
   const {
     current,
@@ -141,6 +162,7 @@ function MultiSlider({
                   zIndex: isActive ? 2 : 1,
                 }}
                 onLoad={() => markLoaded(i)}
+                onError={() => onImgError(src)}
               />
             );
           })}

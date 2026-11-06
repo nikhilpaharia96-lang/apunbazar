@@ -50,7 +50,7 @@ function GlobalStyles() {
   return (
     <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
-      .ab-root { font-family: 'DM Sans', sans-serif; background: ${BG}; }
+      .ab-root { font-family: 'DM Sans', sans-serif; background: ${BG}; max-width:100%; overflow-x:clip; }
       .ab-serif { font-family: 'Playfair Display', serif; }
 
       @keyframes ab-shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
@@ -104,7 +104,7 @@ function GlobalStyles() {
       .ab-label { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:${GOLD}; margin-bottom:6px; }
       .ab-h2 { font-family:'Playfair Display',serif; font-size:clamp(1.5rem,4vw,2rem); font-weight:700; color:#111827; line-height:1.2; }
       .ab-h2 span { color:${GOLD}; }
-      .ab-viewall { display:inline-flex; align-items:center; gap:4px; font-size:13px; font-weight:600; color:${G}; text-decoration:none; transition:gap .2s; }
+      .ab-viewall { white-space:nowrap; flex-shrink:0; display:inline-flex; align-items:center; gap:4px; font-size:13px; font-weight:600; color:${G}; text-decoration:none; transition:gap .2s; }
       .ab-viewall:hover { gap:8px; }
       .ab-hero-primary { display:inline-flex; align-items:center; gap:8px; padding:13px 26px; border-radius:50px; background:${GOLD}; color:#111; font-weight:700; font-size:14px; border:none; cursor:pointer; text-decoration:none; box-shadow:0 8px 24px rgba(201,168,76,.45); transition:transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s; }
       .ab-hero-primary:hover { transform:scale(1.06); box-shadow:0 14px 32px rgba(201,168,76,.6); }

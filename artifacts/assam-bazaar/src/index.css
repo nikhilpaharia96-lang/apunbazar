@@ -125,7 +125,9 @@
   h1, h2, h3, .font-serif {
     font-family: 'Playfair Display', Georgia, serif;
   }
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; overflow-x: clip; max-width: 100%; }
+  body { max-width: 100%; overflow-x: clip; }
+  #root { max-width: 100vw; overflow-x: clip; }
 }
 
 @layer utilities {
@@ -206,4 +208,17 @@
   html[data-install-banner] .wa-float {
     bottom: calc(env(safe-area-inset-bottom) + 152px);
   }
+}
+
+/* WhatsApp float: mobile pe chhota gol button, bottom-nav ke upar, content na dhake */
+@media (max-width: 1023px) {
+  html .wa-float {
+    padding: 0 !important;
+    width: 52px; height: 52px;
+    justify-content: center;
+    right: 12px !important;
+    bottom: calc(env(safe-area-inset-bottom) + 76px);
+    opacity: .92;
+  }
+  .wa-float svg { width: 28px !important; height: 28px !important; }
 }
