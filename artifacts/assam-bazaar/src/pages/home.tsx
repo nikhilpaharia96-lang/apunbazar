@@ -123,11 +123,14 @@ function GlobalStyles() {
   );
 }
 
+// Hero images: local, responsive webp (mobile ko chhoti file milti hai → fast load)
+const heroImg = (n: number, w: number) => `${import.meta.env.BASE_URL}hero/hero-${n}-${w}.webp`;
+const heroSrcSet = (n: number) => `${heroImg(n, 480)} 480w, ${heroImg(n, 800)} 800w`;
+
 const DEFAULT_SLIDES = [
-  { id: "1", badge: "STARTING FROM ASSAM", title: "The Heart of", titleAccent: "Northeast India", subtitle: "Authentic Assam Tea, Handloom & Handmade Products – Delivered Across India.", ctaLabel: "Shop Now", ctaHref: "/products?category=assam-tea", ctaSecondaryLabel: "Explore Assam", ctaSecondaryHref: "/products", bgColor: "#0d2e10", image: "https://confused-white-nzcyx8ks.edgeone.dev/file_0000000024b472079b26166ceba5eb81.png", accent: GOLD },
-  { id: "2", badge: "Pride of Assam", title: "Awesome Assam", titleAccent: "TEA", subtitle: "From Assam's lush gardens to your cup — pure, rich & truly authentic.", ctaLabel: "Shop Now", ctaHref: "/products?category=handloom", ctaSecondaryLabel: "View All", ctaSecondaryHref: "/products", bgColor: "#1a0d2e", image: "https://sad-beige-a5kcyl8q.edgeone.app/44e87171-865e-40d5-9a20-b585e9b34956.png", accent: "#7ec850" },
-  { id: "3", badge: "Cultural Heritage", title: "Traditional", titleAccent: "Goodness", subtitle: "More than a cloth—it's the symbol of Assamese pride, respect, and tradition. Handwoven by skilled local artisans.", ctaLabel: "Shop Gamusa", ctaHref: "/products?category=organic", ctaSecondaryLabel: "View All", ctaSecondaryHref: "/products", bgColor: "#0a2510", image: "https://used-brown-xwgezqax.edgeone.dev/file_00000000d0c871fda2a3bce7ec311c9c.png", accent: "#d4a017" },
-  { id: "5", badge: "Pride of Assam", title: "Assam Tea", titleAccent: "Gardens", subtitle: "First flush, second flush — every sip tells the story of Assam's hills.", ctaLabel: "Shop Tea", ctaHref: "/products?category=tea", ctaSecondaryLabel: "View All", ctaSecondaryHref: "/products", bgColor: "#1a0808", image: "https://thundering-black-udqfmt7p.edgeone.app/785269bd-8b13-433b-a1ef-912e8699eeee.png", accent: GOLD },
+  { id: "1", badge: "STARTING FROM ASSAM", title: "The Heart of", titleAccent: "Northeast India", subtitle: "Authentic Assam Tea, Handloom & Handmade Products – Delivered Across India.", ctaLabel: "Shop Now", ctaHref: "/products?category=assam-tea", ctaSecondaryLabel: "Explore Assam", ctaSecondaryHref: "/products", bgColor: "#0d2e10", image: heroImg(1, 800), srcSet: heroSrcSet(1), pos: "center 70%", accent: GOLD },
+  { id: "2", badge: "Pride of Assam", title: "Awesome Assam", titleAccent: "TEA", subtitle: "From Assam's lush gardens to your cup — pure, rich & truly authentic.", ctaLabel: "Shop Now", ctaHref: "/products?category=handloom", ctaSecondaryLabel: "View All", ctaSecondaryHref: "/products", bgColor: "#1a0d2e", image: heroImg(2, 800), srcSet: heroSrcSet(2), pos: "center 35%", accent: "#7ec850" },
+  { id: "3", badge: "Cultural Heritage", title: "Traditional", titleAccent: "Goodness", subtitle: "More than a cloth—it's the symbol of Assamese pride, respect, and tradition. Handwoven by skilled local artisans.", ctaLabel: "Shop Gamusa", ctaHref: "/products?category=organic", ctaSecondaryLabel: "View All", ctaSecondaryHref: "/products", bgColor: "#0a2510", image: heroImg(3, 800), srcSet: heroSrcSet(3), pos: "center 30%", accent: "#d4a017" },
 ];
 
 // ─── HERO SLIDER — Ken Burns added ───────────────────────────────────────────
@@ -163,7 +166,7 @@ function HeroSlider() {
   };
 
   useEffect(() => {
-    slides.forEach((sl, i) => { if (i === 0 || !sl.image) return; const img = new Image(); img.src = sl.image; });
+    slides.forEach((sl: any, i) => { if (i === 0 || !sl.image) return; const img = new Image(); if (sl.srcSet) { img.sizes = "100vw"; img.srcset = sl.srcSet; } img.src = sl.image; });
   }, [slides]);
 
   useEffect(() => {
@@ -183,7 +186,7 @@ function HeroSlider() {
           <div style={{ position: "absolute", inset: 0, background: sl.bgColor }} />
           {sl.image && (
             <img
-              src={sl.image} alt=""
+              src={sl.image} srcSet={(sl as any).srcSet} sizes="100vw" alt=""
               loading={i === 0 ? "eager" : "lazy"}
               decoding={i === 0 ? "sync" : "async"}
               fetchPriority={i === 0 ? "high" : "low"}
@@ -192,7 +195,7 @@ function HeroSlider() {
               style={{
                 position: "absolute", inset: 0,
                 width: "100%", height: "100%",
-                objectFit: "cover", objectPosition: "center",
+                objectFit: "cover", objectPosition: (sl as any).pos ?? "center",
                 transformOrigin: "center center",
                 animation: i === current ? "ken-burns 18s ease-in-out infinite" : "none",
               }}

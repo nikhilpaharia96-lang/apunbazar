@@ -32,11 +32,14 @@
     <link rel="dns-prefetch" href="https://foreign-apricot-5gn5jhkx.edgeone.app" />
     <link rel="dns-prefetch" href="https://images.unsplash.com" />
 
-    <!-- ✅ FIX 2: Preload FIRST banner image — highest priority -->
+    <!-- Preload FIRST hero image (local, responsive webp) -->
     <link
       rel="preload"
       as="image"
-      href="https://sad-beige-a5kcyl8q.edgeone.app/44e87171-865e-40d5-9a20-b585e9b34956.png"
+      type="image/webp"
+      href="/hero/hero-1-800.webp"
+      imagesrcset="/hero/hero-1-480.webp 480w, /hero/hero-1-800.webp 800w"
+      imagesizes="100vw"
       fetchpriority="high"
     />
 
@@ -83,21 +86,6 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
 
-    <!-- ✅ FIX 4: Silently preload remaining banner images after page loads -->
-    <script>
-      window.addEventListener('load', function() {
-        var imgs = [
-          'https://quickest-blush-tkhqsusm.edgeone.app/b58e6c82-c671-4a12-917c-eb8c458c2b61.png',
-          'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1400&q=80',
-          'https://images.unsplash.com/photo-1590439471364-192aa70c0b53?w=1400&q=80',
-          'https://thundering-black-udqfmt7p.edgeone.app/785269bd-8b13-433b-a1ef-912e8699eeee.png',
-          'https://foreign-apricot-5gn5jhkx.edgeone.app/e5802067-9dbb-42c5-b805-678e9b453f9c.png'
-        ];
-        imgs.forEach(function(src) {
-          var img = new Image();
-          img.src = src;
-        });
-      });
-    </script>
+
   </body>
 </html>
