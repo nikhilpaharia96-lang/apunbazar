@@ -341,14 +341,15 @@ function CategorySection({ categories, isLoading }: { categories: any[]; isLoadi
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <div key={i} style={{ flexShrink: 0, width: 148, height: 210, borderRadius: 20, background: "#e5e7eb" }} />)
           : cats.map((cat: any, idx: number) => {
-              const fallbackSrc = categoryImage(cat, idx);
-              const imgSrc = cat.imageUrl ?? cat.image_url ?? fallbackSrc;
+              // Local (same-origin, chhoti webp) image sabse tez hai — isliye pehle wahi
+              const imgSrc = categoryImage(cat, idx);
               return (
                 <Link key={cat.id ?? cat.slug} href={`/category/${cat.slug}`}
                   style={{ flexShrink: 0, width: 148, borderRadius: 20, overflow: "hidden", textDecoration: "none", scrollSnapAlign: "start", background: "#fff", border: `0.5px solid rgba(212,175,55,0.22)`, boxShadow: "0 4px 18px rgba(27,94,32,0.10), 0 1px 4px rgba(0,0,0,0.06)", display: "block" }}>
                   <div style={{ width: "100%", height: 158, overflow: "hidden", position: "relative", background: "#edf5ef" }}>
-                    <img src={imgSrc} alt={cat.name} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                      onError={e => { const el = e.currentTarget; if (el.src !== new URL(fallbackSrc, window.location.href).href) el.src = fallbackSrc; }} />
+                    <img src={imgSrc} alt={cat.name} width={148} height={158}
+                      loading={idx < 3 ? "eager" : "lazy"} decoding="async" fetchPriority={idx < 3 ? "high" : "auto"}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(27,94,32,0.18) 0%, transparent 55%)", pointerEvents: "none" }} />
                   </div>
                   <div style={{ padding: "10px 10px 12px", textAlign: "center" }}>
