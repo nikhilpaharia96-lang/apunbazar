@@ -222,3 +222,8 @@
   }
   .wa-float svg { width: 28px !important; height: 28px !important; }
 }
+
+/* Admin + staff panels use the clean sans UI font, not the storefront serif headings */
+.ab-admin, .ab-admin h1, .ab-admin h2, .ab-admin h3, .ab-admin h4 {
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}

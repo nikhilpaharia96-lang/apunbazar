@@ -250,4 +250,31 @@ router.get(
   }),
 );
 
+// ── GET /api/admin/revenue-trend ──────────────────────────────────────────
+// Daily revenue + order count for the last N days (zero-filled), from real orders.
+router.get(
+  "/revenue-trend",
+  asyncHandler(async (req, res) => {
+    const daysRaw = Number(req.query.days ?? 30);
+    const days = Number.isFinite(daysRaw) ? Math.min(Math.max(7, Math.floor(daysRaw)), 365) : 30;
+
+    const result = await db.execute(sql`
+      SELECT
+        to_char(d.day, 'YYYY-MM-DD')                 AS "date",
+        COALESCE(SUM(o.total::numeric), 0)::float    AS "revenue",
+        COUNT(o.id)::int                             AS "orders"
+      FROM generate_series(
+             CURRENT_DATE - (${days}::int - 1),
+             CURRENT_DATE,
+             interval '1 day'
+           ) AS d(day)
+      LEFT JOIN orders o ON o.created_at::date = d.day::date
+      GROUP BY d.day
+      ORDER BY d.day
+    `);
+
+    res.json(result.rows ?? []);
+  }),
+);
+
 export default router;

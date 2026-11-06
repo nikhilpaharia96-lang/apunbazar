@@ -1,204 +1,189 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useLocation, Link } from "wouter";
 import {
-  getStaffSession, staffLogout, hasPermission,
-  ROLE_LABELS, ROLE_COLORS, ROLE_DESCRIPTIONS,
+  getStaffSession, staffLogout, hasPermission, ROLE_LABELS, ROLE_COLORS, ROLE_DESCRIPTIONS,
   PERMISSION_LABELS, loadActivities, type Permission,
 } from "@/lib/staff-auth";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
-  LogOut, LayoutDashboard, Package, ShoppingBag, BarChart3,
-  Truck, Users, Image, SlidersHorizontal, Ticket, Settings,
-  Shield, Tag, Megaphone, HeadphonesIcon, FileText,
-  Clock, AlertCircle, CheckCircle2,
+  LogOut, Package, ShoppingBag, BarChart3, Truck, Users, Image, SlidersHorizontal, Ticket, Settings,
+  Shield, Tag, Megaphone, Headphones, FileText, Clock, Lock, ArrowUpRight, Mail, LogIn, ShieldCheck,
+  type LucideIcon,
 } from "lucide-react";
+import { DashboardCard, EmptyState, PermissionBadge } from "@/components/admin/ui";
+import { T } from "@/components/admin/tokens";
 
-// All nav items with required permission
-const ALL_NAV = [
-  { p: "products"       as Permission, label: "Products",     icon: Package,          href: "/admin/products",          color: "#0369a1", desc: "Add/edit products" },
-  { p: "categories"     as Permission, label: "Categories",   icon: Tag,              href: "/admin/categories",        color: "#7c3aed", desc: "Manage categories" },
-  { p: "orders"         as Permission, label: "Orders",       icon: ShoppingBag,      href: "/admin/orders",            color: "#c2410c", desc: "View & manage orders" },
-  { p: "analytics"      as Permission, label: "Analytics",    icon: BarChart3,        href: "/admin/analytics",         color: "#0f766e", desc: "Sales analytics" },
-  { p: "coupons"        as Permission, label: "Coupons",      icon: Ticket,           href: "/admin/coupons",           color: "#be185d", desc: "Discount coupons" },
-  { p: "slider"         as Permission, label: "Hero Slider",  icon: SlidersHorizontal,href: "/admin/slider",            color: "#854d0e", desc: "Homepage slider" },
-  { p: "banners"        as Permission, label: "Banners",      icon: Image,            href: "/admin/banners",           color: "#1d4ed8", desc: "Page banners" },
-  { p: "staff"          as Permission, label: "Staff",        icon: Users,            href: "/admin/staff",             color: "#6d28d9", desc: "Manage staff" },
-  { p: "delivery"       as Permission, label: "Delivery",     icon: Truck,            href: "/admin/orders",            color: "#b45309", desc: "Delivery tracking" },
-  { p: "campaigns"      as Permission, label: "Campaigns",    icon: Megaphone,        href: "/admin/banners",           color: "#be185d", desc: "Marketing campaigns" },
-  { p: "support_tickets"as Permission, label: "Support",      icon: HeadphonesIcon,   href: "/admin/orders",            color: "#0f766e", desc: "Customer support" },
-  { p: "reports"        as Permission, label: "Reports",      icon: FileText,         href: "/admin/analytics",         color: "#374151", desc: "Business reports" },
-  { p: "settings"       as Permission, label: "Settings",     icon: Settings,         href: "/admin/settings",          color: "#6b7280", desc: "Store settings" },
-  { p: "security"       as Permission, label: "Security",     icon: Shield,           href: "/admin/security",          color: "#dc2626", desc: "Security settings" },
+/**
+ * Every module a staff member could have. `p` is the module's own permission;
+ * `target` is the permission of the admin page the card opens (the admin layout
+ * enforces it, and the API enforces it again server-side). A card is only
+ * "accessible" when BOTH are granted, so staff never click into a bounce.
+ */
+interface Module { p: Permission; target: Permission; label: string; icon: LucideIcon; href: string; desc: string }
+const MODULES: Module[] = [
+  { p: "orders",          target: "orders",     label: "Orders",      icon: ShoppingBag,       href: "/admin/orders",     desc: "View and manage orders" },
+  { p: "products",        target: "products",   label: "Products",    icon: Package,           href: "/admin/products",   desc: "Add and edit products" },
+  { p: "categories",      target: "categories", label: "Categories",  icon: Tag,               href: "/admin/categories", desc: "Organise the catalogue" },
+  { p: "delivery",        target: "orders",     label: "Delivery",    icon: Truck,             href: "/admin/orders",     desc: "Track deliveries" },
+  { p: "support_tickets", target: "orders",     label: "Support",     icon: Headphones,        href: "/admin/orders",     desc: "Help customers with orders" },
+  { p: "analytics",       target: "analytics",  label: "Analytics",   icon: BarChart3,         href: "/admin/analytics",  desc: "Sales and traffic insights" },
+  { p: "reports",         target: "analytics",  label: "Reports",     icon: FileText,          href: "/admin/analytics",  desc: "Business reports" },
+  { p: "coupons",         target: "coupons",    label: "Coupons",     icon: Ticket,            href: "/admin/coupons",    desc: "Discount codes" },
+  { p: "slider",          target: "slider",     label: "Hero Slider", icon: SlidersHorizontal, href: "/admin/slider",     desc: "Homepage slider" },
+  { p: "banners",         target: "banners",    label: "Banners",     icon: Image,             href: "/admin/banners",    desc: "Page and category banners" },
+  { p: "campaigns",       target: "banners",    label: "Campaigns",   icon: Megaphone,         href: "/admin/banners",    desc: "Marketing campaigns" },
+  { p: "staff",           target: "staff",      label: "Staff",       icon: Users,             href: "/admin/staff",      desc: "Manage team members" },
+  { p: "settings",        target: "settings",   label: "Settings",    icon: Settings,          href: "/admin/settings",   desc: "Store settings" },
+  { p: "security",        target: "security",   label: "Security",    icon: Shield,            href: "/admin/security",   desc: "Security controls" },
 ];
 
-export default function StaffDashboard() {
-  const [, navigate]    = useLocation();
-  const session         = getStaffSession();
-  const [activities, setActivities] = useState(loadActivities().slice(0, 5));
+function greeting() {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+}
 
-  useEffect(() => {
-    if (!session) navigate("/staff/login");
-  }, []);
+export default function StaffDashboard() {
+  const [, navigate] = useLocation();
+  const session = getStaffSession();
+
+  useEffect(() => { if (!session) navigate("/staff/login"); }, []);
+
+  const activities = useMemo(
+    () => (session ? loadActivities().filter(a => a.staffId === session.staffId).slice(0, 6) : []),
+    [session?.staffId],
+  );
 
   if (!session) return null;
 
-  const allowed  = ALL_NAV.filter(n => hasPermission(n.p));
-  const blocked  = ALL_NAV.filter(n => !hasPermission(n.p));
+  const accessible = MODULES.filter(m => hasPermission(m.p) && hasPermission(m.target));
+  const restricted = MODULES.filter(m => !(hasPermission(m.p) && hasPermission(m.target)));
   const roleColor = ROLE_COLORS[session.role];
+  const firstName = session.name.split(" ")[0];
 
   return (
-    <div className="min-h-screen" style={{ background: "#f8f9fa" }}>
-
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-40 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold"
-              style={{ background: roleColor }}>
-              {session.name.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <p className="text-sm font-semibold leading-none">{session.name}</p>
-              <span className="text-xs font-medium px-1.5 py-0.5 rounded"
-                style={{ background: `${roleColor}18`, color: roleColor }}>
-                {ROLE_LABELS[session.role]}
-              </span>
-            </div>
+    <div className="ab-admin min-h-[100dvh]" style={{ background: T.surface }}>
+      {/* Sticky header */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b" style={{ borderColor: T.border, paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="max-w-5xl mx-auto px-3.5 sm:px-5 h-14 flex items-center gap-3">
+          <img src="/logo.png" alt="" className="h-8 w-8 rounded-lg object-contain" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          <div className="leading-tight min-w-0">
+            <p className="text-sm font-semibold text-neutral-900">ApunBazar</p>
+            <p className="text-[11px] text-neutral-500">Staff Portal</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground hidden sm:block">
-              {new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
-            </span>
-            <Button size="sm" variant="ghost"
-              onClick={() => { staffLogout(); navigate("/staff/login"); }}
-              className="gap-1.5 text-destructive hover:bg-destructive/10">
-              <LogOut className="h-4 w-4" /> Logout
-            </Button>
-          </div>
+          <button onClick={() => { staffLogout(); navigate("/staff/login"); }}
+            className="ml-auto inline-flex items-center gap-1.5 h-10 px-3 rounded-lg text-[13px] font-medium text-rose-600 hover:bg-rose-50 active:bg-rose-100 transition">
+            <LogOut className="h-4 w-4" /> <span>Logout</span>
+          </button>
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-
-        {/* Welcome card */}
-        <div className="rounded-2xl p-5 text-white relative overflow-hidden"
-          style={{ background: `linear-gradient(135deg, ${roleColor}, ${roleColor}cc)` }}>
-          <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10"
-            style={{ background: "white", transform: "translate(30%, -30%)" }} />
-          <h1 className="font-serif text-xl font-bold mb-1">
-            Namaste, {session.name.split(" ")[0]}! 👋
-          </h1>
-          <p className="text-sm opacity-80 mb-3">{ROLE_DESCRIPTIONS[session.role]}</p>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs bg-white/20 rounded-full px-2 py-0.5 font-medium">
-              ✓ {allowed.length} sections accessible
+      <main className="max-w-5xl mx-auto px-3.5 sm:px-5 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        {/* Welcome + profile */}
+        <section className="rounded-2xl p-4 sm:p-6 bg-white border" style={{ borderColor: T.border, boxShadow: T.shadow }}>
+          <div className="flex items-start gap-3.5">
+            <span className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl flex items-center justify-center text-lg font-semibold text-white flex-shrink-0" style={{ background: roleColor }}>
+              {session.name.charAt(0).toUpperCase()}
             </span>
-            {blocked.length > 0 && (
-              <span className="text-xs bg-white/10 rounded-full px-2 py-0.5">
-                🔒 {blocked.length} restricted
-              </span>
-            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-neutral-500">{greeting()}</p>
+              <h1 className="text-lg sm:text-2xl font-semibold tracking-tight text-neutral-900 truncate">Namaste, {firstName}</h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full text-[11px] font-semibold" style={{ background: `${roleColor}14`, color: roleColor }}>
+                  <ShieldCheck className="h-3 w-3" />{ROLE_LABELS[session.role]}
+                </span>
+                <span className="text-xs text-neutral-500">{ROLE_DESCRIPTIONS[session.role]}</span>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Permissions badges */}
-        <div className="bg-white border rounded-xl p-4">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
-            Aapke Permissions
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {session.permissions.map(p => (
-              <span key={p}
-                className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
-                style={{ background: `${roleColor}15`, color: roleColor }}>
-                <CheckCircle2 className="h-3 w-3" />
-                {PERMISSION_LABELS[p]}
-              </span>
-            ))}
-          </div>
-        </div>
+          <dl className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div className="flex items-center gap-2 rounded-lg bg-neutral-50 px-3 py-2.5 min-w-0">
+              <Mail className="h-3.5 w-3.5 text-neutral-400 flex-shrink-0" />
+              <div className="min-w-0"><dt className="text-neutral-400">Email</dt><dd className="font-medium text-neutral-800 truncate">{session.email}</dd></div>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-neutral-50 px-3 py-2.5 min-w-0">
+              <LogIn className="h-3.5 w-3.5 text-neutral-400 flex-shrink-0" />
+              <div className="min-w-0"><dt className="text-neutral-400">Signed in</dt>
+                <dd className="font-medium text-neutral-800 truncate">{new Date(session.loginTime).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</dd></div>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-neutral-50 px-3 py-2.5 min-w-0">
+              <ShieldCheck className="h-3.5 w-3.5 text-neutral-400 flex-shrink-0" />
+              <div className="min-w-0"><dt className="text-neutral-400">Access</dt>
+                <dd className="font-medium text-neutral-800">{accessible.length} open · {restricted.length} restricted</dd></div>
+            </div>
+          </dl>
+        </section>
 
-        {/* Allowed sections */}
-        {allowed.length > 0 && (
-          <div>
-            <p className="text-sm font-bold mb-3 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              Quick Access
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {allowed.map(item => (
-                <Link key={item.p} href={item.href}>
-                  <div className="bg-white border rounded-xl p-4 hover:shadow-md transition-all cursor-pointer group hover:border-primary/30">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-colors"
-                      style={{ background: `${item.color}15` }}>
-                      <item.icon className="h-5 w-5 transition-transform group-hover:scale-110"
-                        style={{ color: item.color }} />
-                    </div>
-                    <p className="text-sm font-semibold text-gray-800">{item.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
-                  </div>
+        {/* Quick access */}
+        <section aria-labelledby="qa">
+          <h2 id="qa" className="text-sm font-semibold text-neutral-900 mb-2.5">Quick access</h2>
+          {accessible.length === 0 ? (
+            <DashboardCard>
+              <EmptyState icon={Lock} title="No modules assigned yet" description="Ask your admin to grant you access to the sections you need." />
+            </DashboardCard>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
+              {accessible.map(m => (
+                <Link key={m.p} href={m.href}
+                  className="group relative block rounded-xl bg-white border p-3.5 sm:p-4 min-w-0 transition-all hover:-translate-y-0.5 hover:border-neutral-300 active:scale-[0.98]"
+                  style={{ borderColor: T.border, boxShadow: T.shadow }}>
+                  <span className="h-9 w-9 rounded-lg flex items-center justify-center mb-3" style={{ background: T.brandSoft, color: T.brand }}><m.icon className="h-[18px] w-[18px]" /></span>
+                  <ArrowUpRight className="absolute top-3.5 right-3.5 h-4 w-4 text-neutral-300 group-hover:text-neutral-600 transition-colors" />
+                  <p className="text-sm font-semibold text-neutral-900 truncate">{m.label}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5 line-clamp-2">{m.desc}</p>
                 </Link>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </section>
 
-        {/* Restricted sections */}
-        {blocked.length > 0 && (
-          <div>
-            <p className="text-sm font-bold mb-3 flex items-center gap-2 text-muted-foreground">
-              <AlertCircle className="h-4 w-4" />
-              Restricted ({blocked.length}) — Admin se request karo
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {blocked.map(item => (
-                <div key={item.p}
-                  className="bg-muted/30 border border-dashed rounded-xl p-4 opacity-50 cursor-not-allowed">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-muted">
-                    <Shield className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm font-medium text-muted-foreground">{item.label}</p>
-                  <p className="text-xs text-muted-foreground/70 mt-0.5">Access restricted</p>
+        {/* Permissions */}
+        <DashboardCard title="Your permissions" subtitle="What your role lets you do">
+          <div className="flex flex-wrap gap-1.5">
+            {session.permissions.length === 0
+              ? <p className="text-xs text-neutral-500">No permissions assigned.</p>
+              : session.permissions.map(p => <PermissionBadge key={p} label={PERMISSION_LABELS[p]} color={roleColor} />)}
+          </div>
+        </DashboardCard>
+
+        {/* Restricted */}
+        {restricted.length > 0 && (
+          <details className="group rounded-xl border bg-white/60" style={{ borderColor: T.border }}>
+            <summary className="flex items-center gap-2 cursor-pointer select-none list-none px-4 min-h-[48px] text-sm font-semibold text-neutral-600 [&::-webkit-details-marker]:hidden">
+              <Lock className="h-3.5 w-3.5" /> Restricted modules ({restricted.length})
+              <span className="ml-auto text-xs font-normal text-neutral-400 group-open:hidden">Show</span>
+              <span className="ml-auto text-xs font-normal text-neutral-400 hidden group-open:inline">Hide</span>
+            </summary>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3 p-3 pt-0">
+              {restricted.map(m => (
+                <div key={m.p} aria-disabled="true" className="rounded-xl border border-dashed bg-white/60 p-3.5 min-w-0 select-none" style={{ borderColor: "#d8d5cd" }}>
+                  <span className="h-9 w-9 rounded-lg flex items-center justify-center mb-3 bg-neutral-100 text-neutral-400"><Lock className="h-4 w-4" /></span>
+                  <p className="text-sm font-medium text-neutral-400 truncate">{m.label}</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">Ask admin for access</p>
                 </div>
               ))}
             </div>
-          </div>
+          </details>
         )}
 
-        {/* No access */}
-        {allowed.length === 0 && (
-          <div className="text-center py-16 bg-white border rounded-2xl">
-            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-40" />
-            <h2 className="font-serif text-lg font-bold mb-2">Koi access nahi</h2>
-            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-              Aapko abhi koi section access nahi diya gaya. Admin se contact karo aur permissions request karo.
-            </p>
-          </div>
-        )}
-
-        {/* Recent activity */}
-        {activities.length > 0 && (
-          <div className="bg-white border rounded-xl p-4">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Clock className="h-3.5 w-3.5" /> Recent Activity
-            </p>
-            <div className="space-y-2">
-              {activities.filter(a => a.staffId === session.staffId).slice(0, 5).map(a => (
-                <div key={a.id} className="flex items-center gap-3 text-sm py-1.5 border-b last:border-0">
-                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-muted text-muted-foreground uppercase">
-                    {a.action}
-                  </span>
-                  <span className="text-muted-foreground flex-1">{a.details}</span>
-                  <span className="text-xs text-muted-foreground flex-shrink-0">
+        {/* Activity */}
+        <DashboardCard title="Recent activity" subtitle="Your latest actions on this device">
+          {activities.length === 0 ? (
+            <EmptyState icon={Clock} title="No activity yet" description="Your actions will be listed here." compact />
+          ) : (
+            <ul className="divide-y divide-neutral-100 -my-2">
+              {activities.map(a => (
+                <li key={a.id} className="flex items-center gap-3 py-2.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded-md bg-neutral-100 text-neutral-600 flex-shrink-0">{a.action}</span>
+                  <span className="text-[13px] text-neutral-700 flex-1 min-w-0 truncate">{a.details}</span>
+                  <span className="text-[11px] text-neutral-400 flex-shrink-0">
                     {new Date(a.timestamp).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                   </span>
-                </div>
+                </li>
               ))}
-            </div>
-          </div>
-        )}
-      </div>
+            </ul>
+          )}
+        </DashboardCard>
+      </main>
     </div>
   );
 }

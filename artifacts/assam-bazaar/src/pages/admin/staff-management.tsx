@@ -24,7 +24,14 @@ export default function StaffManagement() {
   const [loadingStaff, setLoadingStaff] = useState(true);
   const [activities, setActivities] = useState(loadActivities().slice(0, 50));
   const [attendance, setAttendance] = useState(loadAttendance());
-  const [tab, setTab] = useState<"staff"|"activity"|"attendance">("staff");
+  const [tab, setTab] = useState<"staff"|"activity"|"attendance">(() =>
+    typeof window !== "undefined" && window.location.hash === "#activity" ? "activity" : "staff");
+  // Sidebar "Activity Logs" link switches the tab via the URL hash
+  useEffect(() => {
+    const on = () => setTab(window.location.hash === "#activity" ? "activity" : "staff");
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
+  }, []);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<StaffRole|"all">("all");
   const [showForm, setShowForm] = useState(false);

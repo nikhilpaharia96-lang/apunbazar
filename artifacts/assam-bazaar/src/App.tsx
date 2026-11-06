@@ -246,8 +246,8 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <ScrollProgress />
-          <BlurOrbs />
-          <MouseGlow />
+          <StoreOnly><BlurOrbs /></StoreOnly>
+          <StoreOnly><MouseGlow /></StoreOnly>
           <WouterRouter base={base}>
             <Router />
           </WouterRouter>
@@ -258,6 +258,13 @@ export default function App() {
       </QueryClientProvider>
     </ErrorBoundary>
   );
+}
+
+// Decorative storefront effects must never render behind the admin / staff panels.
+function StoreOnly({ children }: { children: ReactNode }) {
+  const [location] = useLocation();
+  if (location.startsWith("/admin") || location.startsWith("/staff")) return null;
+  return <>{children}</>;
 }
 
 function WhatsAppFloatWrapper() {

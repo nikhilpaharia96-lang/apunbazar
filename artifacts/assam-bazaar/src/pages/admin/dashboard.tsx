@@ -1,337 +1,246 @@
-import {
-  useGetAdminStats,
-  useGetRecentOrders,
-  useGetTopProducts,
-  useGetSalesByCategory,
-  getGetAdminStatsQueryKey,
-  getGetRecentOrdersQueryKey,
-  getGetTopProductsQueryKey,
-  getGetSalesByCategoryQueryKey,
-} from "@workspace/api-client-react";
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
 import {
-  TrendingUp, ShoppingBag, Package, Users, IndianRupee, Clock,
+  useGetAdminStats, useGetRecentOrders, useGetTopProducts, useGetSalesByCategory,
+  getGetAdminStatsQueryKey, getGetRecentOrdersQueryKey, getGetTopProductsQueryKey, getGetSalesByCategoryQueryKey,
+} from "@workspace/api-client-react";
+import {
+  IndianRupee, ShoppingBag, Package, Users, Clock, CalendarDays, Star, ArrowRight, Receipt, Activity, TrendingUp,
 } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
+import { getAuthHeaders } from "@/lib/admin-auth";
+import { loadActivities } from "@/lib/staff-auth";
+import {
+  PageHeader, StatCard, DashboardCard, DataTable, EmptyState, ErrorState, LoadingSkeleton,
+  StatusBadge, inr, compactInr, type Column,
+} from "@/components/admin/ui";
+import { T } from "@/components/admin/tokens";
 
-const statusColors: Record<string, string> = {
-  pending:    "bg-yellow-100 text-yellow-800",
-  confirmed:  "bg-blue-100 text-blue-800",
-  processing: "bg-purple-100 text-purple-800",
-  shipped:    "bg-indigo-100 text-indigo-800",
-  delivered:  "bg-green-100 text-green-800",
-  cancelled:  "bg-red-100 text-red-800",
-};
+// API may return the array/object directly or wrapped as { data }
+const unwrap = <X,>(raw: any): X | undefined => (raw == null ? undefined : (typeof raw === "object" && !Array.isArray(raw) && "data" in raw ? raw.data : raw));
+const unwrapArr = (raw: any): any[] => { const v = unwrap<any>(raw); return Array.isArray(v) ? v : []; };
 
-const CHART_COLORS = ["#2d6a4f", "#e05c2f", "#f4a22a", "#3b82f6", "#a855f7"];
+type TrendPoint = { date: string; revenue: number; orders: number };
 
-// ─── FIX 1: safe Rupee formatter ─────────────────────────────────────────────
-// font-serif (Playfair Display) lacks the ₹ glyph → renders as "Ro".
-// We split the symbol out and give it an explicit sans-serif font so it
-// always renders correctly, regardless of which heading font is active.
-function RupeeValue({ amount }: { amount: number }) {
-  return (
-    <span>
-      <span style={{ fontFamily: "system-ui, sans-serif", fontWeight: 700 }}>₹</span>
-      {amount.toLocaleString("en-IN")}
-    </span>
-  );
+function useRevenueTrend(days: number) {
+  return useQuery<TrendPoint[]>({
+    queryKey: ["admin", "revenue-trend", days],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/revenue-trend?days=${days}`, { headers: { ...getAuthHeaders() } });
+      if (!res.ok) throw new Error("Failed to load revenue trend");
+      const d = await res.json();
+      return Array.isArray(d) ? d : [];
+    },
+    staleTime: 60_000,
+  });
 }
 
-// ─── FIX 2: safe data normaliser ─────────────────────────────────────────────
-// API may return { data: {...} } or the object directly — handle both.
-function normalise<T>(raw: T | { data: T } | undefined | null): T | undefined {
-  if (raw == null) return undefined;
-  if (typeof raw === "object" && "data" in (raw as object)) {
-    return (raw as { data: T }).data;
-  }
-  return raw as T;
-}
+const RANGES = [{ d: 7, label: "7D" }, { d: 30, label: "30D" }, { d: 90, label: "90D" }];
 
-function normaliseArray<T>(raw: T[] | { data: T[] } | undefined | null): T[] {
-  if (raw == null) return [];
-  if (!Array.isArray(raw) && typeof raw === "object" && "data" in (raw as object)) {
-    const inner = (raw as { data: T[] }).data;
-    return Array.isArray(inner) ? inner : [];
-  }
-  return Array.isArray(raw) ? raw : [];
+function timeAgo(iso?: string) {
+  if (!iso) return "";
+  const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
 }
 
 export default function AdminDashboard() {
-  const { data: statsRaw, isLoading: statsLoading } = useGetAdminStats({
-    query: { queryKey: getGetAdminStatsQueryKey() },
-  });
-  const { data: recentOrdersRaw } = useGetRecentOrders(
-    { limit: 8 },
-    { query: { queryKey: getGetRecentOrdersQueryKey({ limit: 8 }) } }
-  );
-  const { data: topProductsRaw } = useGetTopProducts(
-    { limit: 5 },
-    { query: { queryKey: getGetTopProductsQueryKey({ limit: 5 }) } }
-  );
-  const { data: salesByCategoryRaw } = useGetSalesByCategory({
-    query: { queryKey: getGetSalesByCategoryQueryKey() },
-  });
+  const [days, setDays] = useState(30);
 
-  // FIX 2 applied — normalise all responses
-  const stats            = normalise(statsRaw);
-  const recentOrdersData = normaliseArray(recentOrdersRaw as any);
-  const topProductsData  = normaliseArray(topProductsRaw as any);
-  const salesData        = normaliseArray(salesByCategoryRaw as any);
+  const stats = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
+  const recent = useGetRecentOrders({ limit: 8 }, { query: { queryKey: getGetRecentOrdersQueryKey({ limit: 8 }) } });
+  const top = useGetTopProducts({ limit: 5 }, { query: { queryKey: getGetTopProductsQueryKey({ limit: 5 }) } });
+  const byCat = useGetSalesByCategory({ query: { queryKey: getGetSalesByCategoryQueryKey() } });
+  const trend = useRevenueTrend(days);
 
-  // FIX 3: explicit ?? 0 fallback on every numeric field
-  const totalRevenue      = stats?.totalRevenue      ?? 0;
-  const totalOrders       = stats?.totalOrders       ?? 0;
-  const totalProducts     = stats?.totalProducts     ?? 0;
-  const totalCustomers    = stats?.totalCustomers    ?? 0;
-  const pendingOrders     = stats?.pendingOrders     ?? 0;
-  const revenueThisMonth  = stats?.revenueThisMonth  ?? 0;
+  const s: any = unwrap<any>(stats.data) ?? {};
+  const totalRevenue = s.totalRevenue ?? 0;
+  const totalOrders = s.totalOrders ?? 0;
+  const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-  const statCards = [
-    {
-      label: "Total Revenue",
-      value: <RupeeValue amount={totalRevenue} />,
-      raw: totalRevenue,
-      icon: IndianRupee,
-      color: "text-primary",
-    },
-    {
-      label: "Total Orders",
-      value: totalOrders.toLocaleString("en-IN"),
-      raw: totalOrders,
-      icon: ShoppingBag,
-      color: "text-secondary",
-    },
-    {
-      label: "Products",
-      value: totalProducts.toLocaleString("en-IN"),
-      raw: totalProducts,
-      icon: Package,
-      color: "text-accent",
-    },
-    {
-      label: "Customers",
-      value: totalCustomers.toLocaleString("en-IN"),
-      raw: totalCustomers,
-      icon: Users,
-      color: "text-chart-4",
-    },
-    {
-      label: "Pending Orders",
-      value: pendingOrders.toLocaleString("en-IN"),
-      raw: pendingOrders,
-      icon: Clock,
-      color: "text-yellow-600",
-    },
-    {
-      label: "This Month",
-      value: <RupeeValue amount={revenueThisMonth} />,
-      raw: revenueThisMonth,
-      icon: TrendingUp,
-      color: "text-primary",
-    },
+  const recentOrders = unwrapArr(recent.data);
+  const topProducts = unwrapArr(top.data);
+  const categories = unwrapArr(byCat.data);
+  const trendData = trend.data ?? [];
+  const trendRevenue = trendData.reduce((a, p) => a + (p.revenue ?? 0), 0);
+  const trendOrders = trendData.reduce((a, p) => a + (p.orders ?? 0), 0);
+  const catTotal = categories.reduce((a, c) => a + (c.revenue ?? 0), 0);
+
+  // Recent activity feed: real orders + this device's staff activity log
+  const activities = useMemo(() => {
+    const fromOrders = recentOrders.slice(0, 5).map((o: any) => ({
+      id: `o-${o.id}`, at: o.createdAt, icon: Receipt,
+      text: `New order ${o.orderNumber} from ${o.customerName ?? "customer"}`, meta: inr(o.total ?? 0),
+    }));
+    const fromStaff = loadActivities().slice(0, 5).map(a => ({
+      id: `s-${a.id}`, at: a.timestamp, icon: Activity, text: `${a.staffName}: ${a.details}`, meta: a.action,
+    }));
+    return [...fromOrders, ...fromStaff].sort((a, b) => +new Date(b.at) - +new Date(a.at)).slice(0, 7);
+  }, [recentOrders]);
+
+  const orderCols: Column<any>[] = [
+    { key: "no", header: "Order", primary: true, cell: o => (
+      <Link href="/admin/orders" className="font-medium hover:underline" style={{ color: T.brand }}>{o.orderNumber}</Link>) },
+    { key: "cust", header: "Customer", cell: o => (
+      <span className="block min-w-0"><span className="block truncate text-neutral-800">{o.customerName}</span>
+      <span className="hidden sm:block truncate text-xs text-neutral-400">{o.customerEmail}</span></span>) },
+    { key: "date", header: "Date", cell: o => <span className="text-neutral-500 text-xs">{o.createdAt ? new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}</span> },
+    { key: "status", header: "Status", cell: o => <StatusBadge status={o.status} /> },
+    { key: "total", header: "Total", align: "right", cell: o => <span className="font-semibold tabular-nums">{inr(o.total ?? 0)}</span> },
   ];
 
   return (
-    <div className="page-enter p-4 sm:p-6 space-y-6">
-      <div>
-        <h1 className="font-serif text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground text-sm">
-          Welcome back. Here's what's happening with your store.
-        </p>
-      </div>
+    <div className="p-3.5 sm:p-6 max-w-[1400px] mx-auto space-y-4 sm:space-y-6">
+      <PageHeader
+        eyebrow="Overview"
+        title="Dashboard"
+        description="How your store is performing right now."
+        actions={<Link href="/admin/orders" className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-medium text-white active:scale-95 transition" style={{ background: T.brand }}>
+          View orders <ArrowRight className="h-3.5 w-3.5" /></Link>}
+      />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {statCards.map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-muted-foreground text-xs font-medium">{stat.label}</p>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              </div>
-              {statsLoading ? (
-                <Skeleton className="h-7 w-24" />
-              ) : (
-                // FIX 1: numeric value in a plain <span> (not font-serif) so ₹ renders correctly
-                <p
-                  className="text-2xl font-bold"
-                  style={{ fontFamily: "system-ui, sans-serif" }}
-                  data-testid={`stat-${stat.label.toLowerCase().replace(/ /g, "-")}`}
-                >
-                  {stat.value}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* KPI cards: 2-col on mobile */}
+      {stats.isError ? (
+        <DashboardCard><ErrorState message="Couldn't load store statistics." onRetry={() => stats.refetch()} /></DashboardCard>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2.5 sm:gap-4">
+          <StatCard label="Total Revenue" value={compactInr(totalRevenue)} hint={inr(totalRevenue)} icon={IndianRupee} loading={stats.isLoading} href="/admin/analytics" />
+          <StatCard label="Total Orders" value={totalOrders.toLocaleString("en-IN")} icon={ShoppingBag} loading={stats.isLoading} tone="blue" href="/admin/orders" />
+          <StatCard label="Pending Orders" value={(s.pendingOrders ?? 0).toLocaleString("en-IN")} icon={Clock} loading={stats.isLoading} tone="amber" hint="Need attention" href="/admin/orders" />
+          <StatCard label="This Month" value={compactInr(s.revenueThisMonth ?? 0)} hint={inr(s.revenueThisMonth ?? 0)} icon={CalendarDays} loading={stats.isLoading} />
+          <StatCard label="Products" value={(s.totalProducts ?? 0).toLocaleString("en-IN")} icon={Package} loading={stats.isLoading} tone="violet" href="/admin/products" />
+          <StatCard label="Customers" value={(s.totalCustomers ?? 0).toLocaleString("en-IN")} icon={Users} loading={stats.isLoading} tone="rose" />
+        </div>
+      )}
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Sales by Category Chart */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">Sales by Category</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {salesData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={salesData} margin={{ top: 5, right: 10, left: 0, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis
-                    dataKey="categoryName"
-                    tick={{ fontSize: 11 }}
-                    angle={-35}
-                    textAnchor="end"
-                    interval={0}
-                  />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                    }}
-                    formatter={(val: number) => [
-                      `₹${(val ?? 0).toLocaleString("en-IN")}`,
-                      "Revenue",
-                    ]}
-                  />
-                  <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
-                    {salesData.map((_: any, i: number) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
+      {/* Revenue analytics */}
+      <DashboardCard
+        title="Revenue analytics"
+        subtitle={trend.isLoading ? "Loading…" : `${inr(trendRevenue)} from ${trendOrders} orders · last ${days} days · avg order ${inr(avgOrder)}`}
+        action={
+          <div className="inline-flex rounded-lg bg-neutral-100 p-0.5 flex-shrink-0" role="tablist" aria-label="Date range">
+            {RANGES.map(r => (
+              <button key={r.d} role="tab" aria-selected={days === r.d} onClick={() => setDays(r.d)}
+                className={`h-8 min-w-[40px] px-2.5 rounded-md text-xs font-medium transition ${days === r.d ? "bg-white shadow-sm text-neutral-900" : "text-neutral-500"}`}>{r.label}</button>
+            ))}
+          </div>}
+      >
+        {trend.isError ? <ErrorState message="Couldn't load revenue trend." onRetry={() => trend.refetch()} />
+          : trend.isLoading ? <div className="h-[220px] sm:h-[280px] rounded-lg bg-neutral-100 animate-pulse" />
+          : trendRevenue === 0 ? <EmptyState icon={TrendingUp} title="No revenue in this period" description="Revenue will appear here as orders come in." compact />
+          : (
+            <div className="h-[220px] sm:h-[280px] -ml-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={T.brand} stopOpacity={0.18} /><stop offset="100%" stopColor={T.brand} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
+                  <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#9ca3af" }} minTickGap={28}
+                    tickFormatter={(d: string) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} />
+                  <YAxis tickLine={false} axisLine={false} width={44} tick={{ fontSize: 11, fill: "#9ca3af" }} tickFormatter={(v: number) => compactInr(v)} />
+                  <Tooltip cursor={{ stroke: "#d4d4d4" }}
+                    contentStyle={{ borderRadius: 10, border: "1px solid #e5e5e5", fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,.06)" }}
+                    labelFormatter={(d: string) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                    formatter={(v: number, name: string) => name === "revenue" ? [inr(v), "Revenue"] : [v, "Orders"]} />
+                  <Area type="monotone" dataKey="revenue" stroke={T.brand} strokeWidth={2} fill="url(#revFill)" />
+                </AreaChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="h-60 flex items-center justify-center text-muted-foreground text-sm">
-                No sales data yet
+            </div>
+          )}
+      </DashboardCard>
+
+      <div className="grid lg:grid-cols-5 gap-4 sm:gap-6">
+        {/* Sales by category */}
+        <DashboardCard title="Sales by category" subtitle="Share of revenue" className="lg:col-span-2">
+          {byCat.isError ? <ErrorState onRetry={() => byCat.refetch()} />
+            : byCat.isLoading ? <LoadingSkeleton rows={4} />
+            : categories.length === 0 ? <EmptyState title="No category sales yet" compact />
+            : (
+              <div className="flex flex-col items-center gap-4">
+                <div className="h-[170px] w-full max-w-[220px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={categories} dataKey="revenue" nameKey="categoryName" innerRadius="62%" outerRadius="92%" paddingAngle={2} stroke="none">
+                        {categories.map((_: any, i: number) => <Cell key={i} fill={T.chart[i % T.chart.length]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #e5e5e5", fontSize: 12 }} formatter={(v: number) => inr(v)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <ul className="w-full space-y-2">
+                  {categories.slice(0, 6).map((c: any, i: number) => (
+                    <li key={c.categoryId ?? i} className="flex items-center gap-2.5 text-sm">
+                      <span className="h-2.5 w-2.5 rounded-sm flex-shrink-0" style={{ background: T.chart[i % T.chart.length] }} />
+                      <span className="flex-1 truncate text-neutral-700">{c.categoryName}</span>
+                      <span className="text-xs text-neutral-400 tabular-nums">{catTotal ? Math.round((c.revenue / catTotal) * 100) : 0}%</span>
+                      <span className="font-medium tabular-nums text-neutral-900 w-16 text-right">{compactInr(c.revenue ?? 0)}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
-          </CardContent>
-        </Card>
+        </DashboardCard>
 
-        {/* Top Products */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">Top Products</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {topProductsData.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center py-6">No products yet</p>
-              ) : (
-                topProductsData.map((product: any, i: number) => (
-                  <div key={product.id} className="flex items-center gap-3">
-                    <span className="text-muted-foreground text-xs font-bold w-4">{i + 1}</span>
-                    <div className="w-9 h-9 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                      {product.imageUrl && (
-                        <img
-                          src={product.imageUrl}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                        />
-                      )}
-                    </div>
+        {/* Top products */}
+        <DashboardCard title="Top products" subtitle="Most reviewed" className="lg:col-span-3"
+          action={<Link href="/admin/products" className="text-xs font-medium hover:underline" style={{ color: T.brand }}>View all</Link>}>
+          {top.isError ? <ErrorState onRetry={() => top.refetch()} />
+            : top.isLoading ? <LoadingSkeleton rows={5} />
+            : topProducts.length === 0 ? <EmptyState icon={Package} title="No products yet" compact />
+            : (
+              <ul className="divide-y divide-neutral-100 -my-2">
+                {topProducts.map((p: any, i: number) => (
+                  <li key={p.id} className="flex items-center gap-3 py-2.5">
+                    <span className="w-6 h-6 rounded-md bg-neutral-100 text-[11px] font-semibold text-neutral-500 flex items-center justify-center flex-shrink-0">{i + 1}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm leading-tight line-clamp-1">{product.name}</p>
-                      <p className="text-muted-foreground text-xs">{product.categoryName}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-sm">
-                        ₹{(product.revenue ?? 0).toLocaleString("en-IN")}
+                      <p className="text-sm font-medium text-neutral-900 truncate">{p.name}</p>
+                      <p className="text-xs text-neutral-500 flex items-center gap-1.5">
+                        <Star className="h-3 w-3 text-amber-500 fill-amber-500" />{Number(p.rating ?? 0).toFixed(1)}
+                        <span className="text-neutral-300">·</span>{p.reviewCount ?? 0} reviews
+                        <span className="text-neutral-300">·</span>
+                        <span className={(p.stock ?? 0) <= 5 ? "text-rose-600 font-medium" : ""}>{p.stock ?? 0} in stock</span>
                       </p>
-                      <p className="text-muted-foreground text-xs">{product.totalSold ?? 0} sold</p>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                    <span className="text-sm font-semibold tabular-nums text-neutral-900">{inr(p.price ?? 0)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+        </DashboardCard>
       </div>
 
-      {/* Recent Orders */}
-      <Card>
-        <CardHeader className="pb-2 flex flex-row items-center justify-between">
-          <CardTitle className="text-base font-semibold">Recent Orders</CardTitle>
-          <Link href="/admin/orders">
-            <span className="text-primary text-xs font-medium hover:underline cursor-pointer">
-              View all
-            </span>
-          </Link>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b text-muted-foreground">
-                  <th className="text-left py-2 pr-4 font-medium">Order</th>
-                  <th className="text-left py-2 pr-4 font-medium">Customer</th>
-                  <th className="text-left py-2 pr-4 font-medium hidden sm:table-cell">Date</th>
-                  <th className="text-left py-2 pr-4 font-medium">Status</th>
-                  <th className="text-right py-2 font-medium">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentOrdersData.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                      No orders yet
-                    </td>
-                  </tr>
-                ) : (
-                  recentOrdersData.map((order: any) => (
-                    <tr
-                      key={order.id}
-                      className="border-b last:border-0 hover:bg-muted/30 transition-colors"
-                      data-testid={`row-order-${order.id}`}
-                    >
-                      <td className="py-3 pr-4">
-                        <Link href="/admin/orders">
-                          <span className="font-medium text-primary hover:underline cursor-pointer">
-                            {order.orderNumber}
-                          </span>
-                        </Link>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <p className="font-medium">{order.customerName}</p>
-                        <p className="text-muted-foreground text-xs">{order.customerEmail}</p>
-                      </td>
-                      <td className="py-3 pr-4 hidden sm:table-cell text-muted-foreground text-xs">
-                        {order.createdAt
-                          ? new Date(order.createdAt).toLocaleDateString("en-IN")
-                          : "N/A"}
-                      </td>
-                      <td className="py-3 pr-4">
-                        <Badge
-                          className={`text-xs ${statusColors[order.status] ?? "bg-gray-100 text-gray-700"}`}
-                          variant="outline"
-                        >
-                          {order.status
-                            ? order.status.charAt(0).toUpperCase() + order.status.slice(1)
-                            : "Unknown"}
-                        </Badge>
-                      </td>
-                      <td className="py-3 text-right font-semibold">
-                        ₹{(order.total ?? 0).toLocaleString("en-IN")}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid lg:grid-cols-5 gap-4 sm:gap-6">
+        <DashboardCard title="Recent orders" className="lg:col-span-3"
+          action={<Link href="/admin/orders" className="text-xs font-medium hover:underline" style={{ color: T.brand }}>View all</Link>}>
+          {recent.isError ? <ErrorState onRetry={() => recent.refetch()} />
+            : <DataTable columns={orderCols} rows={recentOrders} rowKey={o => o.id} loading={recent.isLoading}
+                empty={<EmptyState icon={ShoppingBag} title="No orders yet" description="New orders will show up here." compact />} />}
+        </DashboardCard>
+
+        <DashboardCard title="Recent activities" subtitle="Orders and staff actions" className="lg:col-span-2">
+          {activities.length === 0 ? <EmptyState icon={Activity} title="No activity yet" compact /> : (
+            <ul className="space-y-3.5">
+              {activities.map(a => (
+                <li key={a.id} className="flex items-start gap-3">
+                  <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: T.brandSoft, color: T.brand }}><a.icon className="h-4 w-4" /></span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] text-neutral-800 leading-snug break-words">{a.text}</p>
+                    <p className="text-[11px] text-neutral-400 mt-0.5">{timeAgo(a.at)} · {a.meta}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DashboardCard>
+      </div>
     </div>
   );
 }
