@@ -6,6 +6,7 @@ const DISMISS_KEY = "ab_install_last_shown_at";
 const INSTALLED_KEY = "ab_installed";
 const SILENT_HOURS = 24; // ek baar dikhne ke baad 24 ghante tak dobara nahi
 const SHOW_DELAY_MS = 3000;
+const AUTO_HIDE_MS = 5000; // popup dikhne ke 5 second baad apne aap band ho jaye
 
 type BIPEvent = Event & {
   prompt: () => Promise<void>;
@@ -77,6 +78,17 @@ export default function InstallAppPrompt() {
     setShowHelp(false);
     try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
   };
+
+  // Popup dikhne ke 5s baad auto-cancel (help text khulne par timer dobara shuru hota hai)
+  useEffect(() => {
+    if (!shown) return;
+    const t = setTimeout(() => {
+      setVisible(false);
+      setShowHelp(false);
+      try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
+    }, AUTO_HIDE_MS);
+    return () => clearTimeout(t);
+  }, [shown, showHelp]);
 
   const install = async () => {
     if (deferred) {
