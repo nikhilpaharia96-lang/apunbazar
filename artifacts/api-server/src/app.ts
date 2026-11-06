@@ -13,22 +13,14 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
-import rateLimit from "express-rate-limit";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { AppError } from "./lib/errors";
+import { globalLimiter } from "./middleware/rate-limit";
 
-// ── Custom error class for structured error responses ──────────────────────
-export class AppError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    public readonly message: string,
-    public readonly code?: string,
-  ) {
-    super(message);
-    this.name = "AppError";
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
+// Re-exported for backwards compatibility with existing imports
+export { AppError };
+export { orderLimiter } from "./middleware/rate-limit";
 
 // ── CORS configuration ─────────────────────────────────────────────────────
 const allowedOrigins: string[] = process.env.ALLOWED_ORIGINS
@@ -47,23 +39,6 @@ const corsOptions: cors.CorsOptions = {
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-admin-token"],
 };
-
-// ── Rate limiters ──────────────────────────────────────────────────────────
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many requests, please try again later." },
-});
-
-export const orderLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 5, // 5 orders per minute per IP (prevents COD spam)
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many order requests. Please slow down." },
-});
 
 // ── Application factory ────────────────────────────────────────────────────
 export function createApp(): Express {
@@ -100,7 +75,15 @@ export function createApp(): Express {
     }),
   );
 
-  app.use(express.json({ limit: "2mb" }));
+  app.use(
+    express.json({
+      limit: "2mb",
+      // Keep the exact bytes — Razorpay webhook signatures are computed over the raw body
+      verify: (req, _res, buf) => {
+        (req as Request & { rawBody?: Buffer }).rawBody = buf;
+      },
+    }),
+  );
   app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
   // Apply global rate limit

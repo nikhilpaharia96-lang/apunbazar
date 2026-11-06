@@ -590,7 +590,7 @@ function KasutamDetailTabs({ product }: { product: any }) {
               product.origin  ? ["Origin",  product.origin]  : null,
               ["In Stock", product.stock > 0 ? `${product.stock} units` : "Out of Stock"],
               (product.tags ?? []).length > 0 ? ["Tags", (product.tags ?? []).join(", ")] : null,
-            ].filter(Boolean).map(([k, v], i, arr) => (
+            ].filter((row): row is string[] => row !== null).map(([k, v], i, arr) => (
               <div key={String(k)} style={{
                 display: "flex",
                 padding: "10px 14px",

@@ -14,7 +14,7 @@ import { eq } from "drizzle-orm";
 import { db, pool, staffTable, type StaffRow } from "@workspace/db";
 import { asyncHandler } from "../lib/async-handler";
 import { AppError } from "../app";
-import { authLimiter, requireStaffManager, signStaffToken } from "../middleware/admin-auth";
+import { authLimiter, requirePermission, signStaffToken } from "../middleware/admin-auth";
 
 const router = Router();
 
@@ -104,7 +104,8 @@ router.post(
 );
 
 // ── Management (admin or staff with "staff" permission) ────────────────────
-router.use(requireStaffManager);
+// Live DB check: blocked/deactivated staff or revoked permissions lose access immediately
+router.use(requirePermission("staff"));
 
 router.get(
   "/",

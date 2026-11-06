@@ -6,7 +6,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { initAnalytics } from "@/lib/analytics";
 import { usePageTracking } from "@/hooks/use-analytics";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import type { ReactNode } from "react";
 
 // ── Critical path — eagerly loaded ────────────────────────────────────────
@@ -87,7 +87,7 @@ const queryClient = new QueryClient({
 });
 
 // ── Page transition variants ───────────────────────────────────────────────
-const pageVariants = {
+const pageVariants: Variants = {
   initial: { opacity: 0, y: 12, filter: "blur(4px)" },
   enter: {
     opacity: 1, y: 0, filter: "blur(0px)",

@@ -60,6 +60,12 @@ export const ordersTable = pgTable(
       .default("pending"),
     notes: text("notes"),
     sessionId: text("session_id"),
+    // Server-computed coupon discount (never trusted from the client)
+    couponCode: text("coupon_code"),
+    discount: numeric("discount", { precision: 10, scale: 2 }).notNull().default("0"),
+    // Razorpay linkage — lets /payments/verify and the webhook bind a payment to exactly one order
+    razorpayOrderId: text("razorpay_order_id"),
+    razorpayPaymentId: text("razorpay_payment_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -75,6 +81,7 @@ export const ordersTable = pgTable(
     sessionIdIdx: index("orders_session_id_idx").on(table.sessionId),
     // Supports order timeline / sorting
     createdAtIdx: index("orders_created_at_idx").on(table.createdAt),
+    razorpayOrderIdIdx: index("orders_razorpay_order_id_idx").on(table.razorpayOrderId),
   }),
 );
 

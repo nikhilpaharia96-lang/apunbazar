@@ -30,7 +30,7 @@ router.post("/main", requireAdminAuth, async (req, res): Promise<void> => {
 
 router.put("/main/:id", requireAdminAuth, async (req, res): Promise<void> => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
     const { name, slug, description, imageUrl } = req.body;
     const [item] = await db.update(mainCategoriesTable).set({ name, slug, description, imageUrl }).where(eq(mainCategoriesTable.id, id)).returning();
@@ -44,7 +44,7 @@ router.put("/main/:id", requireAdminAuth, async (req, res): Promise<void> => {
 
 router.delete("/main/:id", requireAdminAuth, async (req, res): Promise<void> => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
     await db.delete(mainCategoriesTable).where(eq(mainCategoriesTable.id, id));
     res.status(204).send();
@@ -82,7 +82,7 @@ router.post("/sub", requireAdminAuth, async (req, res): Promise<void> => {
 
 router.put("/sub/:id", requireAdminAuth, async (req, res): Promise<void> => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
     const { name, slug, description, imageUrl, mainCategoryId } = req.body;
     const [item] = await db.update(subCategoriesTable).set({ name, slug, description, imageUrl, mainCategoryId }).where(eq(subCategoriesTable.id, id)).returning();
@@ -96,7 +96,7 @@ router.put("/sub/:id", requireAdminAuth, async (req, res): Promise<void> => {
 
 router.delete("/sub/:id", requireAdminAuth, async (req, res): Promise<void> => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
     await db.delete(subCategoriesTable).where(eq(subCategoriesTable.id, id));
     res.status(204).send();
@@ -134,7 +134,7 @@ router.post("/child", requireAdminAuth, async (req, res): Promise<void> => {
 
 router.put("/child/:id", requireAdminAuth, async (req, res): Promise<void> => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
     const { name, slug, description, imageUrl, subCategoryId } = req.body;
     const [item] = await db.update(childCategoriesTable).set({ name, slug, description, imageUrl, subCategoryId }).where(eq(childCategoriesTable.id, id)).returning();
@@ -148,7 +148,7 @@ router.put("/child/:id", requireAdminAuth, async (req, res): Promise<void> => {
 
 router.delete("/child/:id", requireAdminAuth, async (req, res): Promise<void> => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
     await db.delete(childCategoriesTable).where(eq(childCategoriesTable.id, id));
     res.status(204).send();

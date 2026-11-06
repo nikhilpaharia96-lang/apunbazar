@@ -8,6 +8,8 @@ import paymentsRouter  from "./payments";
 import wishlistRouter  from "./wishlist";
 import adminRouter     from "./admin";
 import staffRouter     from "./staff";
+import couponsRouter   from "./coupons";
+import settingsRouter  from "./settings";
 
 const router = Router();
 
@@ -20,5 +22,7 @@ router.use("/payments",   paymentsRouter);
 router.use("/wishlist",   wishlistRouter);
 router.use("/admin",      adminRouter);
 router.use("/staff",      staffRouter);
+router.use("/coupons",    couponsRouter);
+router.use("/settings",   settingsRouter);
 
 export default router;

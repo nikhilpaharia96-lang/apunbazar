@@ -28,7 +28,8 @@ import {
   DeleteProductParams,
 } from "@workspace/api-zod";
 import { asyncHandler } from "../lib/async-handler";
-import { AppError } from "../app";
+import { AppError } from "../lib/errors";
+import { requirePermission } from "../middleware/admin-auth";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -221,6 +222,7 @@ router.get(
 // ── POST /api/products ────────────────────────────────────────────────────
 router.post(
   "/",
+  requirePermission("products"),
   asyncHandler(async (req, res) => {
     const parsed = CreateProductBody.safeParse(req.body);
     if (!parsed.success) {
@@ -247,6 +249,7 @@ const [product] = await db.insert(productsTable).values({
 // ── PUT /api/products/:id ─────────────────────────────────────────────────
 router.put(
   "/:id",
+  requirePermission("products"),
   asyncHandler(async (req, res) => {
     const paramsParsed = UpdateProductParams.safeParse(req.params);
     if (!paramsParsed.success) {
@@ -287,6 +290,7 @@ const [product] = await db
 // ── DELETE /api/products/:id ──────────────────────────────────────────────
 router.delete(
   "/:id",
+  requirePermission("products"),
   asyncHandler(async (req, res) => {
     const parsed = DeleteProductParams.safeParse(req.params);
     if (!parsed.success) {

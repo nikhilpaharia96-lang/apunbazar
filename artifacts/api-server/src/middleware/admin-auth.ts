@@ -14,7 +14,9 @@
 
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { AppError } from "../app";
+import { eq } from "drizzle-orm";
+import { db, staffTable } from "@workspace/db";
+import { AppError } from "../lib/errors";
 
 export interface AdminJwtPayload {
   sub: string; // admin email
@@ -136,4 +138,69 @@ export function requireStaffManager(req: Request, _res: Response, next: NextFunc
       next(err);
     }
   }
+}
+
+
+// ── Permission-based authorization (admin OR staff with the permission) ───
+export type AuthResult = "ok" | "forbidden" | "unauthenticated";
+
+/**
+ * Checks the request's bearer token. "ok" = valid admin, or valid staff whose
+ * *current database record* is active, not blocked, and holds the permission.
+ * Staff permissions are read live from the DB (not the JWT) so blocking a member
+ * or revoking a permission takes effect immediately.
+ *   unauthenticated → no/invalid/expired token, or staff member deleted/blocked (401)
+ *   forbidden       → valid identity that lacks this permission (403)
+ */
+export async function checkPermission(req: Request, permission: string): Promise<AuthResult> {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) return "unauthenticated";
+  let payload: { typ?: string; sub?: string };
+  try {
+    payload = jwt.verify(header.slice(7), getJwtSecret(), {
+      issuer: "apunbazar-api",
+    }) as { typ?: string; sub?: string };
+  } catch {
+    return "unauthenticated";
+  }
+  if (payload.typ === "admin") return "ok";
+  if (payload.typ !== "staff" || !payload.sub) return "unauthenticated";
+
+  const [member] = await db
+    .select({
+      role: staffTable.role,
+      permissions: staffTable.permissions,
+      isActive: staffTable.isActive,
+      isBlocked: staffTable.isBlocked,
+    })
+    .from(staffTable)
+    .where(eq(staffTable.id, payload.sub))
+    .limit(1);
+  if (!member || !member.isActive || member.isBlocked) return "unauthenticated";
+  if (member.role === "super_admin") return "ok";
+  try {
+    const perms = JSON.parse(member.permissions) as unknown;
+    return Array.isArray(perms) && perms.includes(permission) ? "ok" : "forbidden";
+  } catch {
+    return "forbidden";
+  }
+}
+
+/** Boolean convenience for routes that serve both public and privileged callers. */
+export async function hasPermission(req: Request, permission: string): Promise<boolean> {
+  return (await checkPermission(req, permission)) === "ok";
+}
+
+export function requirePermission(permission: string) {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await checkPermission(req, permission);
+      if (result === "ok") return next();
+      throw result === "forbidden"
+        ? new AppError(403, "You do not have permission to perform this action.", "FORBIDDEN")
+        : new AppError(401, "Authentication required. Please log in again.", "AUTH_INVALID");
+    } catch (err) {
+      next(err);
+    }
+  };
 }
