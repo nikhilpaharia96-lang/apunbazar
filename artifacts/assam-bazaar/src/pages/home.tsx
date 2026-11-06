@@ -284,12 +284,23 @@ function TrustBar() {
 
 // ─── CATEGORY SECTION ─────────────────────────────────────────────────────────
 const FALLBACK_CATS = [
-  { id: "tea", name: "Tea", slug: "tea", emoji: "🍵" },
-  { id: "handloom", name: "Handloom", slug: "handloom", emoji: "🧣" },
-  { id: "handicrafts", name: "Handicrafts", slug: "handicrafts", emoji: "🪣" },
-  { id: "organic", name: "Organic Food", slug: "organic", emoji: "🌿" },
-  { id: "bamboo", name: "Bamboo", slug: "bamboo", emoji: "🎋" },
+  { id: "tea", name: "Tea", slug: "tea" },
+  { id: "handloom", name: "Handloom", slug: "handloom" },
+  { id: "handicrafts", name: "Handicrafts", slug: "handicrafts" },
+  { id: "organic", name: "Organic Food", slug: "organic" },
+  { id: "bamboo", name: "Bamboo", slug: "bamboo" },
 ];
+
+// Category cards ab icon/emoji ki jagah in photos ko use karte hain
+const CAT_IMAGES = ["tea", "gamusa", "mekhela", "handicrafts"].map(n => `${import.meta.env.BASE_URL}categories/${n}.webp`);
+function categoryImage(cat: any, index: number): string {
+  const key = `${cat.slug ?? ""} ${cat.name ?? ""}`.toLowerCase();
+  if (/tea|chai/.test(key)) return CAT_IMAGES[0];
+  if (/mekhela|chador|saree|sari|silk/.test(key)) return CAT_IMAGES[2];
+  if (/gamusa|gamosa|handloom|textile|cloth|fabric/.test(key)) return CAT_IMAGES[1];
+  if (/handicraft|craft|bamboo|cane|bag|wood|brass|jewel/.test(key)) return CAT_IMAGES[3];
+  return CAT_IMAGES[index % CAT_IMAGES.length];
+}
 
 function CategorySection({ categories, isLoading }: { categories: any[]; isLoading: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -329,16 +340,15 @@ function CategorySection({ categories, isLoading }: { categories: any[]; isLoadi
         className="ab-noscroll">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <div key={i} style={{ flexShrink: 0, width: 148, height: 210, borderRadius: 20, background: "#e5e7eb" }} />)
-          : cats.map((cat: any) => {
-              const imgSrc = cat.imageUrl ?? cat.image_url ?? null;
+          : cats.map((cat: any, idx: number) => {
+              const fallbackSrc = categoryImage(cat, idx);
+              const imgSrc = cat.imageUrl ?? cat.image_url ?? fallbackSrc;
               return (
                 <Link key={cat.id ?? cat.slug} href={`/category/${cat.slug}`}
                   style={{ flexShrink: 0, width: 148, borderRadius: 20, overflow: "hidden", textDecoration: "none", scrollSnapAlign: "start", background: "#fff", border: `0.5px solid rgba(212,175,55,0.22)`, boxShadow: "0 4px 18px rgba(27,94,32,0.10), 0 1px 4px rgba(0,0,0,0.06)", display: "block" }}>
                   <div style={{ width: "100%", height: 158, overflow: "hidden", position: "relative", background: "#edf5ef" }}>
-                    {imgSrc
-                      ? <img src={imgSrc} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 52 }}>{cat.emoji ?? "🌿"}</div>
-                    }
+                    <img src={imgSrc} alt={cat.name} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                      onError={e => { const el = e.currentTarget; if (el.src !== new URL(fallbackSrc, window.location.href).href) el.src = fallbackSrc; }} />
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(27,94,32,0.18) 0%, transparent 55%)", pointerEvents: "none" }} />
                   </div>
                   <div style={{ padding: "10px 10px 12px", textAlign: "center" }}>
