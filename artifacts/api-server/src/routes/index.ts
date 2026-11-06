@@ -7,6 +7,7 @@ import ordersRouter    from "./orders";
 import paymentsRouter  from "./payments";
 import wishlistRouter  from "./wishlist";
 import adminRouter     from "./admin";
+import staffRouter     from "./staff";
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use("/orders",     ordersRouter);
 router.use("/payments",   paymentsRouter);
 router.use("/wishlist",   wishlistRouter);
 router.use("/admin",      adminRouter);
+router.use("/staff",      staffRouter);
 
 export default router;

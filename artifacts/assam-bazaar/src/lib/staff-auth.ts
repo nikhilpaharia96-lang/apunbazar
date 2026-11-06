@@ -1,3 +1,5 @@
+import { getAuthHeaders, isAdminLoggedIn } from "@/lib/admin-auth";
+
 /**
  * staff-auth.ts — Role-Based Access Control (RBAC)
  * Staff sirf apne assigned permissions wale sections hi dekh sakta hai
@@ -44,7 +46,8 @@ export interface StaffMember {
   lastLogin?: string;
   createdBy: string;
   whatsappNumber?: string;
-  password: string;
+  /** Only used in forms (set/change). Server never returns it. */
+  password?: string;
 }
 
 export interface StaffActivity {
@@ -64,6 +67,8 @@ export interface StaffSession {
   name: string;
   email: string;
   loginTime: string;
+  /** API token for staff-management calls */
+  token?: string;
 }
 
 // ── Role Permissions — clearly defined, limited by role ──────────────────────
@@ -162,105 +167,82 @@ export const PERMISSION_GROUPS: { label: string; permissions: Permission[] }[] =
 
 // ── Storage keys ──────────────────────────────────────────────────────────────
 const SK = {
-  staff:      "apunbazar_staff_members",
   session:    "apunbazar_staff_session",
   activities: "apunbazar_staff_activities",
   attendance: "apunbazar_staff_attendance",
 };
 
-// ── Default staff ─────────────────────────────────────────────────────────────
-const DEFAULT_STAFF: StaffMember[] = [
-  {
-    id: "staff_001",
-    name: "Admin User",
-    email: "admin@apunbazar.com",
-    phone: "+91 9613000000",
-    role: "super_admin",
-    permissions: ROLE_PERMISSIONS.super_admin,
-    department: "Management",
-    isActive: true,
-    isBlocked: false,
-    createdAt: new Date().toISOString(),
-    createdBy: "system",
-    password: "admin123",
-  },
-];
+// ── API helpers ───────────────────────────────────────────────────────────────
+// Staff ab database mein save hota hai (har device se login chalega)
+const API_URL = import.meta.env.VITE_API_URL || "https://apunbazar.onrender.com";
 
-// ── CRUD ──────────────────────────────────────────────────────────────────────
-export function loadStaff(): StaffMember[] {
+function authHeaders(): Record<string, string> {
+  if (isAdminLoggedIn()) return getAuthHeaders();
+  const t = getStaffSession()?.token;
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+async function api<T>(path: string, init: RequestInit = {}, auth = true): Promise<T> {
+  let res: Response;
   try {
-    const s = localStorage.getItem(SK.staff);
-    if (s) { const p = JSON.parse(s); if (Array.isArray(p) && p.length) return p; }
-  } catch {}
-  return DEFAULT_STAFF;
+    res = await fetch(`${API_URL}/api/staff${path}`, {
+      ...init,
+      headers: { "Content-Type": "application/json", ...(auth ? authHeaders() : {}), ...(init.headers || {}) },
+    });
+  } catch {
+    throw new Error("Could not connect to server. Please try again.");
+  }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((body as { error?: string }).error || "Request failed");
+  return body as T;
 }
 
-export function saveStaff(staff: StaffMember[]): void {
-  localStorage.setItem(SK.staff, JSON.stringify(staff));
+// ── CRUD (admin ya "staff" permission wale staff ke liye) ─────────────────────
+export function fetchStaff(): Promise<StaffMember[]> {
+  return api<StaffMember[]>("");
 }
 
-export function addStaffMember(member: Omit<StaffMember, "id" | "createdAt">): StaffMember {
-  const staff = loadStaff();
-  // Enforce role-based permissions — staff apne role se zyada permissions nahi le sakta
-  const maxPermissions = ROLE_PERMISSIONS[member.role];
-  const safePermissions = member.permissions.filter(p => maxPermissions.includes(p));
-
-  const newMember: StaffMember = {
-    ...member,
-    permissions: safePermissions,
-    id: `staff_${Date.now()}`,
-    createdAt: new Date().toISOString(),
-  };
-  saveStaff([...staff, newMember]);
-  return newMember;
+export function addStaffMember(
+  member: Omit<StaffMember, "id" | "createdAt">,
+): Promise<StaffMember> {
+  return api<StaffMember>("", { method: "POST", body: JSON.stringify(member) });
 }
 
-export function updateStaffMember(id: string, updates: Partial<StaffMember>): void {
-  const staff = loadStaff();
-  saveStaff(staff.map(s => {
-    if (s.id !== id) return s;
-    const updated = { ...s, ...updates };
-    // Role change hone pe permissions bhi reset karo
-    if (updates.role && updates.role !== s.role) {
-      updated.permissions = ROLE_PERMISSIONS[updates.role];
-    }
-    // Custom permissions validate karo — role ki boundary se bahar nahi
-    if (updates.permissions) {
-      const maxPerms = ROLE_PERMISSIONS[updated.role];
-      updated.permissions = updates.permissions.filter(p => maxPerms.includes(p));
-    }
-    return updated;
-  }));
+export function updateStaffMember(id: string, updates: Partial<StaffMember>): Promise<StaffMember> {
+  return api<StaffMember>(`/${id}`, { method: "PATCH", body: JSON.stringify(updates) });
 }
 
-export function deleteStaffMember(id: string): void {
-  const staff = loadStaff();
-  // Default super_admin delete nahi ho sakta
-  const member = staff.find(s => s.id === id);
-  if (member?.id === "staff_001") return;
-  saveStaff(staff.filter(s => s.id !== id));
+export function deleteStaffMember(id: string): Promise<{ success: boolean }> {
+  return api(`/${id}`, { method: "DELETE" });
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-export function staffLogin(email: string, password: string): StaffMember | null {
-  const staff = loadStaff();
-  const member = staff.find(s => s.email === email && s.password === password);
-  if (!member || member.isBlocked || !member.isActive) return null;
-
-  const session: StaffSession = {
-    staffId:     member.id,
-    role:        member.role,
-    // Only save permissions that are within the role's allowed set
-    permissions: member.permissions.filter(p => ROLE_PERMISSIONS[member.role].includes(p)),
-    name:        member.name,
-    email:       member.email,
-    loginTime:   new Date().toISOString(),
-  };
-  localStorage.setItem(SK.session, JSON.stringify(session));
-  updateStaffMember(member.id, { lastLogin: new Date().toISOString() });
-  logActivity(member.id, member.name, "LOGIN", "Staff logged in", "login");
-  logAttendance(member.id);
-  return member;
+export async function staffLogin(
+  email: string,
+  password: string,
+): Promise<{ ok: true; member: StaffMember } | { ok: false; error: string }> {
+  try {
+    const { token, member } = await api<{ token: string; member: StaffMember }>(
+      "/login",
+      { method: "POST", body: JSON.stringify({ email: email.trim().toLowerCase(), password }) },
+      false,
+    );
+    const session: StaffSession = {
+      staffId:     member.id,
+      role:        member.role,
+      permissions: member.permissions.filter(p => ROLE_PERMISSIONS[member.role].includes(p)),
+      name:        member.name,
+      email:       member.email,
+      loginTime:   new Date().toISOString(),
+      token,
+    };
+    localStorage.setItem(SK.session, JSON.stringify(session));
+    logActivity(member.id, member.name, "LOGIN", "Staff logged in", "login");
+    logAttendance(member.id);
+    return { ok: true, member };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Login failed" };
+  }
 }
 
 export function staffLogout(): void {

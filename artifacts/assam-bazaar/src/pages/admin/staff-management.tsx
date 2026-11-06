@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  loadStaff, saveStaff, addStaffMember, updateStaffMember, deleteStaffMember,
+  fetchStaff, addStaffMember, updateStaffMember, deleteStaffMember,
   loadActivities, loadAttendance,
   ROLE_PERMISSIONS, ROLE_LABELS, ROLE_COLORS, PERMISSION_LABELS,
   type StaffMember, type StaffRole, type Permission,
@@ -38,11 +38,15 @@ export default function StaffManagement() {
     whatsappNumber: "", permissions: [] as Permission[],
   });
 
-  useEffect(() => {
-    setStaff(loadStaff());
-  }, []);
+  // Passwords sirf create/edit ke waqt pata hote hain (server sirf hash rakhta hai)
+  const [knownPasswords, setKnownPasswords] = useState<Record<string, string>>({});
 
-  function refreshStaff() { setStaff(loadStaff()); }
+  async function refreshStaff() {
+    try { setStaff(await fetchStaff()); }
+    catch (e) { toast({ title: e instanceof Error ? e.message : "Could not load staff", variant: "destructive" }); }
+  }
+
+  useEffect(() => { refreshStaff(); }, []);
 
   function handleRoleChange(role: StaffRole) {
     setForm(f => ({ ...f, role, permissions: ROLE_PERMISSIONS[role] }));
@@ -62,47 +66,55 @@ export default function StaffManagement() {
     setEditingId(null); setShowForm(false);
   }
 
-  function handleSubmit() {
-    if (!form.name || !form.email || !form.password) {
+  async function handleSubmit() {
+    if (!form.name || !form.email || (!editingId && !form.password)) {
       toast({ title: "Name, email and password are required", variant: "destructive" }); return;
     }
-    const existing = loadStaff().find(s => s.email === form.email && s.id !== editingId);
-    if (existing) { toast({ title: "Email already exists", variant: "destructive" }); return; }
-
-    if (editingId) {
-      updateStaffMember(editingId, { ...form });
-      toast({ title: "✅ Staff updated!" });
-    } else {
-      addStaffMember({ ...form, isActive: true, isBlocked: false, createdBy: "admin", avatar: undefined });
-      toast({ title: "✅ Staff member added!", description: `${form.name} can now login` });
+    try {
+      if (editingId) {
+        await updateStaffMember(editingId, { ...form, password: form.password || undefined });
+        if (form.password) setKnownPasswords(k => ({ ...k, [editingId]: form.password }));
+        toast({ title: "✅ Staff updated!" });
+      } else {
+        const created = await addStaffMember({ ...form, isActive: true, isBlocked: false, createdBy: "admin", avatar: undefined });
+        setKnownPasswords(k => ({ ...k, [created.id]: form.password }));
+        toast({ title: "✅ Staff member added!", description: `${form.name} can now login from any device` });
+      }
+      await refreshStaff(); resetForm();
+    } catch (e) {
+      toast({ title: e instanceof Error ? e.message : "Something went wrong", variant: "destructive" });
     }
-    refreshStaff(); resetForm();
   }
 
   function startEdit(member: StaffMember) {
     setForm({
       name: member.name, email: member.email, phone: member.phone,
-      password: member.password, role: member.role, department: member.department,
+      password: "", role: member.role, department: member.department,
       whatsappNumber: member.whatsappNumber || "", permissions: member.permissions,
     });
     setEditingId(member.id); setShowForm(true);
   }
 
-  function toggleBlock(id: string, blocked: boolean) {
-    updateStaffMember(id, { isBlocked: !blocked });
-    refreshStaff();
-    toast({ title: blocked ? "Staff unblocked" : "Staff blocked" });
+  async function toggleBlock(id: string, blocked: boolean) {
+    try {
+      await updateStaffMember(id, { isBlocked: !blocked });
+      await refreshStaff();
+      toast({ title: blocked ? "Staff unblocked" : "Staff blocked" });
+    } catch (e) { toast({ title: e instanceof Error ? e.message : "Failed", variant: "destructive" }); }
   }
 
-  function handleDelete(id: string, name: string) {
+  async function handleDelete(id: string, name: string) {
     if (!confirm(`Delete ${name}?`)) return;
-    deleteStaffMember(id);
-    refreshStaff();
-    toast({ title: "Staff member deleted" });
+    try {
+      await deleteStaffMember(id);
+      await refreshStaff();
+      toast({ title: "Staff member deleted" });
+    } catch (e) { toast({ title: e instanceof Error ? e.message : "Failed", variant: "destructive" }); }
   }
 
   function copyCredentials(member: StaffMember) {
-    navigator.clipboard.writeText(`Email: ${member.email}\nPassword: ${member.password}\nRole: ${ROLE_LABELS[member.role]}`);
+    const pw = knownPasswords[member.id] ?? "(jo password set kiya tha wahi hai — edit karke naya set kar sakte hain)";
+    navigator.clipboard.writeText(`Email: ${member.email}\nPassword: ${pw}\nRole: ${ROLE_LABELS[member.role]}`);
     toast({ title: "Credentials copied!" });
   }
 
@@ -196,7 +208,7 @@ export default function StaffManagement() {
               <div className="relative">
                 <Input type={showPassword ? "text" : "password"} value={form.password}
                   onChange={e => setForm(f => ({...f, password: e.target.value}))}
-                  placeholder="Set login password" className="pr-10" />
+                  placeholder={editingId ? "Naya password (khali = purana rahega)" : "Set login password"} className="pr-10" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

@@ -17,11 +17,10 @@ export default function StaffLogin() {
   async function handleLogin() {
     if (!email || !password) { toast({ title: "Required", variant: "destructive" }); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 500));
-    const member = staffLogin(email, password);
+    const result = await staffLogin(email, password);
     setLoading(false);
-    if (!member) { toast({ title: "Invalid credentials", variant: "destructive" }); return; }
-    toast({ title: `Welcome, ${member.name}!` });
+    if (!result.ok) { toast({ title: result.error, variant: "destructive" }); return; }
+    toast({ title: `Welcome, ${result.member.name}!` });
     navigate("/staff/dashboard");
   }
 
