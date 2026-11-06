@@ -60,7 +60,10 @@
 
     <!-- Inline critical CSS -->
     <style>
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      *, *::before, *::after { box-sizing: border-box; }
+      /* Layered reset: pre-CSS flash ke liye, lekin Tailwind utilities (p-*, m-*, mx-auto) isse override kar sakti hain.
+         Unlayered "margin:0; padding:0" Tailwind v4 ke saare spacing classes ko cancel kar deta tha. */
+      @layer reset { *, *::before, *::after { margin: 0; padding: 0; } }
       html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
       body { font-family: 'Inter', system-ui, sans-serif; background: #fff; color: #1a1a1a; }
       #root { min-height: 100dvh; }

@@ -21,6 +21,7 @@ const ALL_PERMISSIONS = Object.keys(PERMISSION_LABELS) as Permission[];
 export default function StaffManagement() {
   const { toast } = useToast();
   const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(true);
   const [activities, setActivities] = useState(loadActivities().slice(0, 50));
   const [attendance, setAttendance] = useState(loadAttendance());
   const [tab, setTab] = useState<"staff"|"activity"|"attendance">("staff");
@@ -44,6 +45,7 @@ export default function StaffManagement() {
   async function refreshStaff() {
     try { setStaff(await fetchStaff()); }
     catch (e) { toast({ title: e instanceof Error ? e.message : "Could not load staff", variant: "destructive" }); }
+    finally { setLoadingStaff(false); }
   }
 
   useEffect(() => { refreshStaff(); }, []);
@@ -144,13 +146,13 @@ export default function StaffManagement() {
           </h1>
           <p className="text-muted-foreground text-sm">Manage team members, roles & permissions</p>
         </div>
-        <Button onClick={() => { resetForm(); setShowForm(true); }} className="gap-2">
+        <Button onClick={() => { resetForm(); setShowForm(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="gap-2 w-full sm:w-auto h-11 sm:h-10">
           <Plus className="h-4 w-4" /> Add Staff Member
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: "Total Staff", value: stats.total, icon: Users, color: "#2d4a2d" },
           { label: "Active", value: stats.active, icon: CheckCircle, color: "#16a34a" },
@@ -168,10 +170,10 @@ export default function StaffManagement() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-muted/40 p-1 rounded-xl w-fit">
+      <div className="grid grid-cols-3 sm:inline-flex gap-1 bg-muted/40 p-1 rounded-xl w-full sm:w-fit">
         {(["staff","activity","attendance"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize ${tab === t ? "bg-white shadow text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+            className={`px-2 sm:px-4 py-2.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize whitespace-nowrap ${tab === t ? "bg-white shadow text-primary" : "text-muted-foreground hover:text-foreground"}`}>
             {t === "staff" ? "👥 Staff" : t === "activity" ? "📋 Activity" : "🕐 Attendance"}
           </button>
         ))}
@@ -248,11 +250,11 @@ export default function StaffManagement() {
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <Button onClick={handleSubmit} className="gap-2">
+          <div className="flex flex-col-reverse sm:flex-row gap-3">
+            <Button onClick={handleSubmit} className="gap-2 h-11 sm:h-10">
               <CheckCircle className="h-4 w-4" /> {editingId ? "Update Staff" : "Add Staff Member"}
             </Button>
-            <Button variant="outline" onClick={resetForm}>Cancel</Button>
+            <Button variant="outline" onClick={resetForm} className="h-11 sm:h-10">Cancel</Button>
           </div>
         </div>
       )}
@@ -264,11 +266,11 @@ export default function StaffManagement() {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search by name or email..." className="pl-9" />
+              <Input type="search" value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search by name or email..." className="pl-9 h-11 sm:h-10" />
             </div>
             <select value={roleFilter} onChange={e => setRoleFilter(e.target.value as StaffRole|"all")}
-              className="h-10 px-3 rounded-md border bg-background text-sm min-w-32">
+              className="h-11 sm:h-10 px-3 rounded-md border bg-background text-sm sm:min-w-36">
               <option value="all">All Roles</option>
               {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
             </select>
@@ -280,7 +282,7 @@ export default function StaffManagement() {
               const todayPresent = attendance.find(a => a.staffId === member.id && a.date === today);
               return (
                 <div key={member.id} className={`bg-card border rounded-xl p-4 transition-all ${member.isBlocked ? "opacity-60 border-red-200" : ""}`}>
-                  <div className="flex items-start gap-4">
+                  <div className="flex flex-wrap sm:flex-nowrap items-start gap-3 sm:gap-4">
                     {/* Avatar */}
                     <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
                       style={{ background: ROLE_COLORS[member.role] }}>
@@ -290,7 +292,7 @@ export default function StaffManagement() {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-sm">{member.name}</p>
+                        <p className="font-semibold text-sm break-words">{member.name}</p>
                         <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white"
                           style={{ background: ROLE_COLORS[member.role] }}>
                           {ROLE_LABELS[member.role]}
@@ -298,9 +300,9 @@ export default function StaffManagement() {
                         {member.isBlocked && <Badge variant="destructive" className="text-xs">Blocked</Badge>}
                         {todayPresent && <Badge className="text-xs bg-green-600">Present Today</Badge>}
                       </div>
-                      <div className="flex items-center gap-4 mt-1 flex-wrap">
+                      <div className="flex items-center gap-x-4 gap-y-1 mt-1.5 flex-wrap">
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Mail className="h-3 w-3" /> {member.email}
+                          <Mail className="h-3 w-3 shrink-0" /> <span className="break-all">{member.email}</span>
                         </span>
                         {member.phone && (
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -340,7 +342,7 @@ export default function StaffManagement() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center justify-end gap-1 w-full sm:w-auto flex-shrink-0 border-t sm:border-0 pt-2 sm:pt-0 -mb-1 sm:mb-0 [&>button]:h-10 [&>button]:w-10 sm:[&>button]:h-9 sm:[&>button]:w-9 [&>button]:p-0">
                       <Button size="sm" variant="ghost" onClick={() => copyCredentials(member)} title="Copy credentials">
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
@@ -363,10 +365,15 @@ export default function StaffManagement() {
                 </div>
               );
             })}
-            {filtered.length === 0 && (
+            {loadingStaff && (
+              <div className="space-y-3" aria-busy="true">
+                {[0, 1, 2].map(i => <div key={i} className="h-24 rounded-xl bg-muted/60 animate-pulse" />)}
+              </div>
+            )}
+            {!loadingStaff && filtered.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
                 <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                <p>No staff members found</p>
+                <p>{staff.length === 0 ? "Abhi koi staff nahi hai — \"Add Staff Member\" dabayein" : "No staff members found"}</p>
               </div>
             )}
           </div>
