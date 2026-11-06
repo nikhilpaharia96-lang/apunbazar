@@ -839,7 +839,7 @@ export default function CategoryPage() {
         </div>
 
         {/* ═══ PRODUCT GRID ════════════════════════════════════════════════════ */}
-        <div id="cp-product-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "4px 12px 100px" }}>
+        <div id="cp-product-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, padding: "4px 12px 100px" }}>
           {loading
             ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
             : products.length === 0

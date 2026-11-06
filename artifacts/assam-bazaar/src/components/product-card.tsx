@@ -100,8 +100,8 @@ export default function ProductCard({ product }: { product: Product }) {
   }
 
   return (
-    <Link href={`/products/${product.id}`}>
-      <div className="group relative bg-white rounded-2xl overflow-hidden border border-gray-100 cursor-pointer h-full flex flex-col shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300">
+    <Link href={`/products/${product.id}`} style={{ display: "block", minWidth: 0 }}>
+      <div className="group relative w-full min-w-0 max-w-full bg-white rounded-2xl overflow-hidden border border-gray-100 cursor-pointer h-full flex flex-col shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300">
 
         {/* Image */}
         <div className="relative overflow-hidden rounded-t-2xl bg-gray-50">

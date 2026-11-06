@@ -259,7 +259,7 @@ function TrustBar() {
   ];
   return (
     <section style={{ background: BG, padding: "10px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
         {items.map((item) => (
           /* ── 2. cin-trust-card class added ── */
           <div key={item.title} className="cin-trust-card" style={{ background: "#fff", borderRadius: 14, padding: "10px 9px", border: "0.5px solid #ede8de", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", position: "relative", overflow: "hidden", display: "flex", alignItems: "flex-start", gap: 8, minHeight: 82 }}>
@@ -459,10 +459,10 @@ function NewArrivalsSection() {
     queryKey: ["new-arrivals"],
     queryFn: async () => { const r = await fetch("/api/products?limit=6"); const d = await r.json(); return Array.isArray(d) ? d : d?.products ?? []; },
   });
-  if (isLoading) return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} style={{ height: 280, borderRadius: 18 }} />)}</div>;
+  if (isLoading) return <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} style={{ height: 280, borderRadius: 18 }} />)}</div>;
   const products = Array.isArray(data) ? data : [];
   if (!products.length) return <div style={{ textAlign: "center", padding: "36px 0", color: "#9ca3af" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><IconLeafSmall color="#9ca3af" /></div><p style={{ fontSize: 13 }}>New arrivals coming soon!</p></div>;
-  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>{products.map((p: any) => <ProductCard key={p.id} product={p} />)}</div>;
+  return <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>{products.map((p: any) => <ProductCard key={p.id} product={p} />)}</div>;
 }
 
 // ─── TESTIMONIALS ─────────────────────────────────────────────────────────────
@@ -607,8 +607,8 @@ function RecentlyViewedSection() {
         </div>
         <Link href="/products" className="ab-viewall" style={{ fontSize: 12 }}>See all <IconArrowRight size={13} /></Link>
       </div>
-      {isLoading ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>{[1, 2].map(i => <Skeleton key={i} style={{ height: 220, borderRadius: 18 }} />)}</div>
-        : <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>{(productsData ?? []).map((p: any) => <ProductCard key={p.id} product={p} />)}</div>}
+      {isLoading ? <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>{[1, 2].map(i => <Skeleton key={i} style={{ height: 220, borderRadius: 18 }} />)}</div>
+        : <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>{(productsData ?? []).map((p: any) => <ProductCard key={p.id} product={p} />)}</div>}
     </section>
   );
 }
