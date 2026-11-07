@@ -68,7 +68,6 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      "Added to cart! 🛒"  
       if (!sessionId || product.stock === 0 || cartAdded || addToCart.isPending) return;
 
       setCartAdded(true);

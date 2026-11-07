@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startExpiryJob } from "./services/order-expiry";
 
 // Fail fast on missing/weak secrets instead of failing on the first admin request
 if (process.env.NODE_ENV === "production") {
@@ -21,6 +22,7 @@ const port = parseInt(process.env.PORT ?? "8080", 10);
 const effectivePort = isNaN(port) || port <= 0 ? 8080 : port;
 
 app.listen(effectivePort, "0.0.0.0", () => {
+  startExpiryJob();
   logger.info({ port: effectivePort, env: process.env.NODE_ENV ?? "development" }, "🚀 API server started");
 });
 

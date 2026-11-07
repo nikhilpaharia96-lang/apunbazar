@@ -100,9 +100,14 @@ router.post(
       .returning({ id: ordersTable.id, orderNumber: ordersTable.orderNumber });
 
     if (!updated && order.paymentStatus !== "paid") {
-      // Paid after we cancelled/released the stock — needs a human (refund) decision
-      logger.error({ orderId, razorpay_payment_id }, "Payment received for a cancelled order — manual refund required");
-      throw new AppError(409, "This order was cancelled. Your payment will be refunded.", "ORDER_CLOSED");
+      // Paid after we cancelled/expired the order and released the stock. Record the payment so
+      // it shows up in Admin → Payments as "refund needed" (cancelled + paid).
+      await db
+        .update(ordersTable)
+        .set({ paymentStatus: "paid", razorpayPaymentId: razorpay_payment_id })
+        .where(eq(ordersTable.id, orderId));
+      logger.error({ orderId, razorpay_payment_id }, "Payment received for a cancelled order — refund required");
+      throw new AppError(409, "This order had already expired or was cancelled. Your payment will be refunded.", "ORDER_CLOSED");
     }
 
     logger.info({ orderId, razorpay_payment_id }, "Payment verified");
@@ -146,7 +151,11 @@ router.post(
           .where(eq(ordersTable.id, order.id));
         logger.info({ orderId: order.id }, "Order marked paid via webhook");
       } else if (order.status === "cancelled" && order.paymentStatus !== "paid") {
-        logger.error({ orderId: order.id }, "Webhook payment for cancelled order — manual refund required");
+        await db
+          .update(ordersTable)
+          .set({ paymentStatus: "paid", razorpayPaymentId: payment.id ?? null })
+          .where(eq(ordersTable.id, order.id));
+        logger.error({ orderId: order.id }, "Webhook payment for cancelled order — refund required");
       }
     }
     res.json({ received: true });

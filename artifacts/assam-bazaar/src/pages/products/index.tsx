@@ -139,7 +139,7 @@ export default function Products() {
     }
   }
   function selectAll() { setActiveMain("all"); setExpandedMain(null); setActiveSub(null); setActiveChild(null); }
-  function toggleWish(id: number) { setWishlist(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; }); }
+  function toggleWish(id: number) { setWishlist(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; }); }
   function addToCart(id: number) {
     setCartPops(prev => new Set([...prev, id]));
     setTimeout(() => setCartPops(prev => { const n = new Set(prev); n.delete(id); return n; }), 1500);

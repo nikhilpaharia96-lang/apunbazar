@@ -856,7 +856,7 @@ export default function CategoryPage() {
                   product={p} cfg={cfg}
                   onNavigate={goToProduct}
                   onAddCart={addCart}
-                  onWishlist={id => setWishlist(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; })}
+                  onWishlist={id => setWishlist(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
                   inCart={cartAnim.has(p.id)}
                   isWishlisted={wishlist.has(p.id)}
                 />

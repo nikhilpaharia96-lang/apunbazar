@@ -14,8 +14,8 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { db, ordersTable, productsTable } from "@workspace/db";
-import { sql, desc, gte, eq } from "drizzle-orm";
-import { requireAdminAuth, signAdminToken, authLimiter } from "../middleware/admin-auth";
+import { sql, desc } from "drizzle-orm";
+import { requireAdminAuth, requirePermission, signAdminToken, authLimiter } from "../middleware/admin-auth";
 import { asyncHandler } from "../lib/async-handler";
 import { AppError } from "../app";
 import { logger } from "../lib/logger";
@@ -87,6 +87,82 @@ router.post(
   }),
 );
 
+// ── Dashboard data (admin OR staff with the "dashboard" permission) ────────
+// Revenue = not cancelled/refunded AND (COD OR online-paid). Days bucketed in IST.
+const REV = sql`(o.status NOT IN ('cancelled','refunded') AND (o.payment_method = 'cod' OR o.payment_status = 'paid'))`;
+const dash = requirePermission("dashboard");
+
+router.get("/stats", dash, asyncHandler(async (_req, res) => {
+  const [r] = (await db.execute(sql`
+    SELECT COUNT(*)::int AS "totalOrders",
+           COALESCE(SUM(o.total::numeric) FILTER (WHERE ${REV}), 0)::float AS "totalRevenue",
+           COUNT(*) FILTER (WHERE o.status = 'pending')::int AS "pendingOrders",
+           COALESCE(SUM(o.total::numeric) FILTER (WHERE ${REV} AND (o.created_at AT TIME ZONE 'Asia/Kolkata') >= date_trunc('month', now() AT TIME ZONE 'Asia/Kolkata')), 0)::float AS "revenueThisMonth",
+           COUNT(DISTINCT lower(o.customer_email))::int AS "totalCustomers"
+    FROM orders o`)).rows as Array<Record<string, number>>;
+  const [p] = await db.select({ count: sql<number>`count(*)` }).from(productsTable);
+  res.json({ ...r, totalProducts: Number(p?.count ?? 0) });
+}));
+
+router.get("/recent-orders", dash, asyncHandler(async (req, res) => {
+  const limitRaw = Number(req.query.limit ?? 10);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(1, limitRaw), 50) : 10;
+  const list = await db
+    .select({
+      id: ordersTable.id, orderNumber: ordersTable.orderNumber, customerName: ordersTable.customerName,
+      customerEmail: ordersTable.customerEmail, total: ordersTable.total, status: ordersTable.status,
+      paymentMethod: ordersTable.paymentMethod, paymentStatus: ordersTable.paymentStatus, createdAt: ordersTable.createdAt,
+    })
+    .from(ordersTable).orderBy(desc(ordersTable.createdAt)).limit(limit);
+  res.json(list.map((o) => ({ ...o, total: Number(o.total), createdAt: o.createdAt.toISOString() })));
+}));
+
+// Ranked by units actually sold (previously ranked by review count)
+router.get("/top-products", dash, asyncHandler(async (req, res) => {
+  const limitRaw = Number(req.query.limit ?? 5);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(1, limitRaw), 20) : 5;
+  const result = await db.execute(sql`
+    SELECT (item->>'productId')::int AS id, MAX(item->>'name') AS name,
+           SUM((item->>'quantity')::int)::int AS units,
+           SUM((item->>'quantity')::int * (item->>'price')::numeric)::float AS revenue,
+           COALESCE(MAX(p.stock), 0)::int AS stock
+    FROM orders o CROSS JOIN LATERAL jsonb_array_elements(o.items) item
+    LEFT JOIN products p ON p.id = (item->>'productId')::int
+    WHERE ${REV}
+    GROUP BY 1 ORDER BY units DESC, revenue DESC LIMIT ${limit}`);
+  res.json(result.rows ?? []);
+}));
+
+// Uses each line's price × quantity (previously added the whole order total to every category)
+router.get("/sales-by-category", dash, asyncHandler(async (_req, res) => {
+  const result = await db.execute(sql`
+    SELECT p.category_id AS "categoryId", COALESCE(c.name, 'Uncategorised') AS "categoryName",
+           COUNT(DISTINCT o.id)::int AS "orderCount",
+           SUM((item->>'quantity')::int * (item->>'price')::numeric)::float AS revenue
+    FROM orders o CROSS JOIN LATERAL jsonb_array_elements(o.items) item
+    LEFT JOIN products p ON p.id = (item->>'productId')::int
+    LEFT JOIN main_categories c ON c.id = p.category_id
+    WHERE ${REV}
+    GROUP BY p.category_id, c.name ORDER BY revenue DESC LIMIT 10`);
+  res.json(result.rows ?? []);
+}));
+
+router.get("/revenue-trend", dash, asyncHandler(async (req, res) => {
+  const daysRaw = Number(req.query.days ?? 30);
+  const days = Number.isFinite(daysRaw) ? Math.min(Math.max(7, Math.floor(daysRaw)), 365) : 30;
+  const result = await db.execute(sql`
+    SELECT to_char(d.day, 'YYYY-MM-DD') AS "date",
+           COALESCE(SUM(o.total::numeric) FILTER (WHERE ${REV}), 0)::float AS "revenue",
+           COUNT(o.id) FILTER (WHERE ${REV})::int AS "orders"
+    FROM generate_series(
+           (now() AT TIME ZONE 'Asia/Kolkata')::date - (${days}::int - 1),
+           (now() AT TIME ZONE 'Asia/Kolkata')::date, interval '1 day') AS g(day0)
+    CROSS JOIN LATERAL (SELECT g.day0::date AS day) d
+    LEFT JOIN orders o ON (o.created_at AT TIME ZONE 'Asia/Kolkata')::date = d.day
+    GROUP BY d.day ORDER BY d.day`);
+  res.json(result.rows ?? []);
+}));
+
 // All routes below this line require admin authentication
 router.use(requireAdminAuth);
 
@@ -124,156 +200,6 @@ router.post(
         "Password updated for this session. To persist across restarts, " +
         "update ADMIN_PASSWORD_HASH in your deployment environment with the newHash value.",
     });
-  }),
-);
-
-// ── GET /api/admin/stats ───────────────────────────────────────────────────
-router.get(
-  "/stats",
-  asyncHandler(async (_req, res) => {
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-
-    const [orders, revenue, products, pending, monthRev, customers] = await Promise.all([
-      db.select({ count: sql<number>`count(*)` }).from(ordersTable),
-      db
-        .select({ sum: sql<number>`COALESCE(sum(total::numeric), 0)` })
-        .from(ordersTable),
-      db.select({ count: sql<number>`count(*)` }).from(productsTable),
-      db
-        .select({ count: sql<number>`count(*)` })
-        .from(ordersTable)
-        .where(eq(ordersTable.status, "pending")),
-      db
-        .select({ sum: sql<number>`COALESCE(sum(total::numeric), 0)` })
-        .from(ordersTable)
-        .where(gte(ordersTable.createdAt, startOfMonth)),
-      db
-        .select({ count: sql<number>`count(distinct customer_email)` })
-        .from(ordersTable),
-    ]);
-
-    res.json({
-      totalOrders: Number(orders[0]?.count ?? 0),
-      totalRevenue: Number(revenue[0]?.sum ?? 0),
-      totalProducts: Number(products[0]?.count ?? 0),
-      pendingOrders: Number(pending[0]?.count ?? 0),
-      revenueThisMonth: Number(monthRev[0]?.sum ?? 0),
-      totalCustomers: Number(customers[0]?.count ?? 0),
-    });
-  }),
-);
-
-// ── GET /api/admin/recent-orders ──────────────────────────────────────────
-router.get(
-  "/recent-orders",
-  asyncHandler(async (req, res) => {
-    const limitRaw = Number(req.query.limit ?? 10);
-    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(1, limitRaw), 50) : 10;
-
-    // Project only needed fields — NOT SELECT * (avoids fetching large items JSON)
-    const rows = await db
-      .select({
-        id: ordersTable.id,
-        orderNumber: ordersTable.orderNumber,
-        customerName: ordersTable.customerName,
-        customerEmail: ordersTable.customerEmail,
-        total: ordersTable.total,
-        status: ordersTable.status,
-        paymentMethod: ordersTable.paymentMethod,
-        paymentStatus: ordersTable.paymentStatus,
-        createdAt: ordersTable.createdAt,
-      })
-      .from(ordersTable)
-      .orderBy(desc(ordersTable.createdAt))
-      .limit(limit);
-
-    res.json(
-      rows.map((o) => ({
-        ...o,
-        total: Number(o.total),
-        createdAt: o.createdAt.toISOString(),
-      })),
-    );
-  }),
-);
-
-// ── GET /api/admin/top-products ───────────────────────────────────────────
-router.get(
-  "/top-products",
-  asyncHandler(async (req, res) => {
-    const limitRaw = Number(req.query.limit ?? 5);
-    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(1, limitRaw), 20) : 5;
-
-    const rows = await db
-      .select({
-        id: productsTable.id,
-        name: productsTable.name,
-        price: productsTable.price,
-        rating: productsTable.rating,
-        reviewCount: productsTable.reviewCount,
-        stock: productsTable.stock,
-      })
-      .from(productsTable)
-      .orderBy(desc(productsTable.reviewCount))
-      .limit(limit);
-
-    res.json(
-      rows.map((p) => ({
-        ...p,
-        price: Number(p.price),
-        rating: Number(p.rating),
-      })),
-    );
-  }),
-);
-
-// ── GET /api/admin/sales-by-category ─────────────────────────────────────
-router.get(
-  "/sales-by-category",
-  asyncHandler(async (_req, res) => {
-    const result = await db.execute(sql`
-      SELECT
-        p.category_id                                        AS "categoryId",
-        c.name                                               AS "categoryName",
-        COUNT(DISTINCT o.id)::int                           AS "orderCount",
-        COALESCE(SUM(o.total::numeric), 0)::float           AS "revenue"
-      FROM orders o
-      CROSS JOIN LATERAL jsonb_array_elements(o.items) AS item
-      JOIN products p ON p.id = (item->>'productId')::int
-      JOIN main_categories c ON c.id = p.category_id
-      GROUP BY p.category_id, c.name
-      ORDER BY "revenue" DESC
-      LIMIT 10
-    `);
-
-    res.json(result.rows ?? []);
-  }),
-);
-
-// ── GET /api/admin/revenue-trend ──────────────────────────────────────────
-// Daily revenue + order count for the last N days (zero-filled), from real orders.
-router.get(
-  "/revenue-trend",
-  asyncHandler(async (req, res) => {
-    const daysRaw = Number(req.query.days ?? 30);
-    const days = Number.isFinite(daysRaw) ? Math.min(Math.max(7, Math.floor(daysRaw)), 365) : 30;
-
-    const result = await db.execute(sql`
-      SELECT
-        to_char(d.day, 'YYYY-MM-DD')                 AS "date",
-        COALESCE(SUM(o.total::numeric), 0)::float    AS "revenue",
-        COUNT(o.id)::int                             AS "orders"
-      FROM generate_series(
-             CURRENT_DATE - (${days}::int - 1),
-             CURRENT_DATE,
-             interval '1 day'
-           ) AS d(day)
-      LEFT JOIN orders o ON o.created_at::date = d.day::date
-      GROUP BY d.day
-      ORDER BY d.day
-    `);
-
-    res.json(result.rows ?? []);
   }),
 );
 

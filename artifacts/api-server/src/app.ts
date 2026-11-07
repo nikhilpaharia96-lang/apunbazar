@@ -105,6 +105,17 @@ export function createApp(): Express {
       });
     }
 
+    // Client errors raised by body-parser (malformed JSON → 400, body too large → 413, …)
+    const clientStatus = (err as Error & { status?: number; statusCode?: number; type?: string });
+    const status = clientStatus.status ?? clientStatus.statusCode;
+    if (status && status >= 400 && status < 500) {
+      const msg =
+        status === 413 ? "Request body is too large." :
+        clientStatus.type === "entity.parse.failed" ? "Request body is not valid JSON." :
+        "Bad request.";
+      return res.status(status).json({ error: msg, code: "BAD_REQUEST" });
+    }
+
     // Log unexpected errors with full stack
     logger.error({ err }, "Unhandled server error");
 

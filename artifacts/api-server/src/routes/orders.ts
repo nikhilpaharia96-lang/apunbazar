@@ -12,7 +12,7 @@
  */
 import { Router, type Request } from "express";
 import { z } from "zod";
-import { and, desc, eq, ilike, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql, gte, lt } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import rateLimit from "express-rate-limit";
 import { db, ordersTable, productsTable, couponsTable, ORDER_STATUSES } from "@workspace/db";
@@ -30,6 +30,7 @@ import {
   toPaise,
 } from "../services/coupon-service";
 import { createGatewayOrder, getRazorpay } from "../services/razorpay-service";
+import { logMovement, restockAndReleaseCoupon, type OrderItem } from "../services/order-lifecycle";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -46,8 +47,6 @@ const lookupLimiter = rateLimit({
 const digits10 = (v: string) => v.replace(/\D/g, "").slice(-10);
 const sameEmail = (a: string, b: unknown) =>
   typeof b === "string" && a.trim().toLowerCase() === b.trim().toLowerCase();
-
-type OrderItem = { productId: number; name: string; price: number; quantity: number; imageUrl?: string };
 
 function formatOrder(o: Order) {
   return {
@@ -108,24 +107,6 @@ const CreateOrderSchema = z.object({
   sessionId: z.string().max(100).optional(),
 });
 
-// ── Stock restore (cancel / refund / gateway failure) ──────────────────────
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-async function restockAndReleaseCoupon(tx: Tx, order: Order): Promise<void> {
-  for (const item of order.items as OrderItem[]) {
-    await tx
-      .update(productsTable)
-      .set({ stock: sql`${productsTable.stock} + ${item.quantity}` })
-      .where(eq(productsTable.id, item.productId));
-  }
-  if (order.couponCode) {
-    await tx
-      .update(couponsTable)
-      .set({ usedCount: sql`GREATEST(${couponsTable.usedCount} - 1, 0)` })
-      .where(eq(couponsTable.code, order.couponCode));
-  }
-}
-
 // ── GET /api/orders ────────────────────────────────────────────────────────
 // Admin/staff: full list with filters. Customer: requires exact email + phone.
 router.get(
@@ -139,17 +120,29 @@ router.get(
         email: z.string().trim().max(254).optional(),
         phone: z.string().trim().max(20).optional(),
         status: z.enum(ORDER_STATUSES).optional(),
+        paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]).optional(),
+        q: z.string().trim().max(100).optional(),
+        from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
         page: z.coerce.number().int().min(1).default(1),
         limit: z.coerce.number().int().min(1).max(100).default(20),
       })
       .safeParse(req.query);
     if (!q.success) throw new AppError(400, firstIssue(q.error), "VALIDATION_ERROR");
-    const { email, phone, status, page, limit } = q.data;
+    const { email, phone, status, paymentStatus, q: search, from, to, page, limit } = q.data;
 
     const conditions = [];
     if (privileged) {
       if (email) conditions.push(ilike(ordersTable.customerEmail, `%${email.replace(/[%_\\]/g, "\\$&")}%`));
       if (status) conditions.push(eq(ordersTable.status, status as OrderStatus));
+      if (paymentStatus) conditions.push(eq(ordersTable.paymentStatus, paymentStatus));
+      if (search) {
+        const like = `%${search.replace(/[%_\\]/g, "\\$&")}%`;
+        conditions.push(or(ilike(ordersTable.orderNumber, like), ilike(ordersTable.customerName, like), ilike(ordersTable.customerEmail, like), ilike(ordersTable.customerPhone, like))!);
+      }
+      // Dates are interpreted in the shop's timezone (IST)
+      if (from) conditions.push(gte(ordersTable.createdAt, sql`(${from}::date)::timestamp AT TIME ZONE 'Asia/Kolkata'`));
+      if (to) conditions.push(lt(ordersTable.createdAt, sql`((${to}::date + 1)::timestamp) AT TIME ZONE 'Asia/Kolkata'`));
     } else {
       // Public lookup: both factors required, exact match only
       if (!email || !phone || digits10(phone).length !== 10) {
@@ -268,6 +261,7 @@ router.post(
           sessionId: input.sessionId,
         })
         .returning();
+      for (const l of lines) await logMovement(tx, { productId: l.productId, delta: -l.quantity, reason: "order", orderId: created.id });
       return created;
     });
 
@@ -280,7 +274,7 @@ router.post(
       } catch (err) {
         logger.error({ err, orderId: order.id }, "Razorpay order creation failed — releasing stock");
         await db.transaction(async (tx) => {
-          await restockAndReleaseCoupon(tx, order);
+          await restockAndReleaseCoupon(tx, order, "cancel");
           await tx.update(ordersTable).set({ status: "cancelled", paymentStatus: "failed" }).where(eq(ordersTable.id, order.id));
         });
         throw new AppError(502, "Could not start the payment. Please try again.", "PAYMENT_GATEWAY_ERROR");
@@ -331,12 +325,16 @@ router.put(
 
       const next = body.data.status;
       const wasTerminal = TERMINAL.includes(current.status);
-      if (wasTerminal && next !== current.status) {
+      // A cancelled order may only move on to "refunded" (money returned); nothing else can revive it
+      const refundOfCancelled = current.status === "cancelled" && next === "refunded";
+      if (wasTerminal && next !== current.status && !refundOfCancelled) {
         throw new AppError(409, `A ${current.status} order cannot be changed. Ask the customer to place a new order.`, "INVALID_TRANSITION");
       }
-      if (!wasTerminal && TERMINAL.includes(next)) await restockAndReleaseCoupon(tx, current);
+      if (!wasTerminal && TERMINAL.includes(next)) await restockAndReleaseCoupon(tx, current, "cancel", "admin");
 
       let paymentStatus = body.data.paymentStatus;
+      if (!paymentStatus && refundOfCancelled && current.paymentStatus === "paid") paymentStatus = "refunded";
+      if (!paymentStatus && next === "refunded" && current.paymentStatus === "paid") paymentStatus = "refunded";
       // COD is collected on delivery
       if (!paymentStatus && next === "delivered" && current.paymentMethod === "cod") paymentStatus = "paid";
 

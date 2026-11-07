@@ -10,6 +10,8 @@ import adminRouter     from "./admin";
 import staffRouter     from "./staff";
 import couponsRouter   from "./coupons";
 import settingsRouter  from "./settings";
+import uploadsRouter   from "./uploads";
+import manageRouter    from "./manage";
 
 const router = Router();
 
@@ -24,5 +26,7 @@ router.use("/admin",      adminRouter);
 router.use("/staff",      staffRouter);
 router.use("/coupons",    couponsRouter);
 router.use("/settings",   settingsRouter);
+router.use("/uploads",    uploadsRouter);
+router.use("/manage",     manageRouter);
 
 export default router;

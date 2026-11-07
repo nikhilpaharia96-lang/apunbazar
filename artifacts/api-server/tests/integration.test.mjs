@@ -89,7 +89,7 @@ test("product writes require authentication", async () => {
 });
 
 test("admin can create a product", async () => {
-  const r = await api("POST", "/products", { token: adminToken, body: { name: `Admin Tea ${sfx}`, description: "d", price: 250, categoryId: 1, imageUrl: "x.jpg", slug: `admin-tea-${sfx}`, stock: 3 } });
+  const r = await api("POST", "/products", { token: adminToken, body: { name: `Admin Tea ${sfx}`, description: "d", price: 250, categoryId: (await pool.query("SELECT id FROM main_categories ORDER BY id LIMIT 1")).rows[0].id, imageUrl: "https://cdn.example.com/x.jpg", stock: 3 } });
   assert.equal(r.status, 201, JSON.stringify(r.body));
 });
 
