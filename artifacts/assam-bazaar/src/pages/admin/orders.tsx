@@ -86,6 +86,11 @@ export default function AdminOrders() {
           }
           toast({ title: "Order status updated" });
         },
+        onError: (err) => toast({
+          title: "Could not update order",
+          description: (err as { data?: { error?: string } }).data?.error ?? "Please try again.",
+          variant: "destructive",
+        }),
       }
     );
   }

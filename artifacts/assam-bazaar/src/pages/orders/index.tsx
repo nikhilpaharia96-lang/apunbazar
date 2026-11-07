@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useListOrders, getListOrdersQueryKey } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
+import type { Order } from "@workspace/api-client-react";
+import { apiFetch } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Package, Search, Shield, Mail, ClipboardList, Headphones, MessageCircle } from "lucide-react";
+import { Package, Search, Shield, Mail, Phone, ClipboardList, Headphones, MessageCircle } from "lucide-react";
 
 const statusColors: Record<string, { bg: string; text: string; dot: string }> = {
   pending:    { bg: "#fff8e1", text: "#b45309", dot: "#f59e0b" },
@@ -19,16 +21,28 @@ export default function Orders() {
   const [email, setEmail] = useState<string>(() => {
     try { return localStorage.getItem("apunbazar_last_email") ?? ""; } catch { return ""; }
   });
-  const [searchEmail, setSearchEmail] = useState("");
+  const [phone, setPhone] = useState<string>(() => {
+    try { return localStorage.getItem("apunbazar_last_phone") ?? ""; } catch { return ""; }
+  });
+  const [search, setSearch] = useState<{ email: string; phone: string } | null>(null);
+  const searchEmail = search?.email ?? "";
 
-  const { data, isLoading } = useListOrders(
-    { email: searchEmail || undefined },
-    { query: { queryKey: getListOrdersQueryKey({ email: searchEmail || undefined }) } }
-  );
+  // Customers must present BOTH the email and mobile number used at checkout
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["my-orders", search?.email, search?.phone],
+    enabled: !!search,
+    retry: false,
+    queryFn: () =>
+      apiFetch<{ orders: Order[] }>(
+        `/api/orders?email=${encodeURIComponent(search!.email)}&phone=${encodeURIComponent(search!.phone)}`,
+      ),
+  });
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    setSearchEmail(email);
+    const clean = { email: email.trim(), phone: phone.replace(/\D/g, "").slice(-10) };
+    setSearch(clean);
+    try { localStorage.setItem("apunbazar_last_email", clean.email); localStorage.setItem("apunbazar_last_phone", clean.phone); } catch {}
   }
 
   return (
@@ -49,18 +63,29 @@ export default function Orders() {
           </div>
           <h1 className="font-serif text-2xl font-bold text-gray-900">Track Your Orders</h1>
         </div>
-        <p className="text-gray-500 text-sm mb-6 ml-14">Enter your email address to view your order history</p>
+        <p className="text-gray-500 text-sm mb-6 ml-14">Enter the email and mobile number used at checkout</p>
 
         {/* Search */}
-        <form onSubmit={handleSearch} className="flex gap-3 mb-6">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
-              type="email"
+              type="email" required
               placeholder="Enter your email address"
               value={email}
               onChange={e => setEmail(e.target.value)}
               data-testid="input-email-search"
+              style={{ width: "100%", paddingLeft: 40, paddingRight: 16, height: 48, border: "1.5px solid #e0e0e0", borderRadius: 12, fontSize: 14, outline: "none", background: "#fff" }}
+            />
+          </div>
+          <div className="relative flex-1">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="tel" inputMode="numeric" required
+              placeholder="Mobile number"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              data-testid="input-phone-search"
               style={{ width: "100%", paddingLeft: 40, paddingRight: 16, height: 48, border: "1.5px solid #e0e0e0", borderRadius: 12, fontSize: 14, outline: "none", background: "#fff" }}
             />
           </div>
@@ -71,15 +96,15 @@ export default function Orders() {
           <div className="space-y-3">
             {[1, 2, 3].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}
           </div>
-        ) : !searchEmail ? (
+        ) : !search ? (
           /* Empty state */
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
             {/* Illustration */}
             <div style={{ width: 140, height: 140, margin: "0 auto 20px", background: "#f0faf4", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Package className="h-16 w-16" style={{ color: "#1a5a32", opacity: 0.4 }} />
             </div>
-            <h3 className="font-serif text-lg font-bold text-gray-800 mb-2">Enter your email to find your orders</h3>
-            <p className="text-gray-500 text-sm mb-8">We'll send you a secure link to view<br />your order status and history.</p>
+            <h3 className="font-serif text-lg font-bold text-gray-800 mb-2">Enter your email and mobile to find your orders</h3>
+            <p className="text-gray-500 text-sm mb-8">Both are needed to keep your<br />order details private.</p>
 
             {/* Feature cards */}
             <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
@@ -117,11 +142,16 @@ export default function Orders() {
             </div>
           </div>
 
+        ) : error ? (
+          <div style={{ background: "#fff", borderRadius: 20, padding: 32, textAlign: "center" }}>
+            <p className="font-semibold text-gray-700">Could not look up orders</p>
+            <p className="text-sm text-gray-400 mt-1">{(error as { data?: { error?: string } }).data?.error ?? "Please try again in a moment."}</p>
+          </div>
         ) : data?.orders.length === 0 ? (
           <div style={{ background: "#fff", borderRadius: 20, padding: 40, textAlign: "center" }}>
             <Package className="h-12 w-12 mx-auto mb-4 opacity-20" style={{ color: "#1a5a32" }} />
             <p className="font-semibold text-gray-700 mb-1">No orders found</p>
-            <p className="text-sm text-gray-400 mb-5">No orders found for {searchEmail}</p>
+            <p className="text-sm text-gray-400 mb-5">No orders match {searchEmail} with that mobile number</p>
             <Link href="/products">
               <button style={{ background: "#1a5a32", color: "#fff", border: "none", borderRadius: 12, padding: "12px 28px", fontWeight: 700, cursor: "pointer" }}>
                 Start Shopping

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -8,7 +8,7 @@ import {
   Zap, Truck, Package, Banknote, ExternalLink,
   Facebook, Instagram, Youtube, Twitter, MessageCircle,
 } from "lucide-react";
-import { loadShippingConfig, saveShippingConfig, DEFAULT_SHIPPING, type ShippingConfig } from "@/lib/shipping-config";
+import { fetchShippingConfig, saveShippingConfig, DEFAULT_SHIPPING, type ShippingConfig } from "@/lib/shipping-config";
 
 // ─── Social links helpers ─────────────────────────────────────────────────────
 const SOCIAL_FIELDS = [
@@ -42,7 +42,8 @@ export default function AdminSettings() {
   });
 
   // Shipping
-  const [shipping, setShipping] = useState<ShippingConfig>(() => loadShippingConfig());
+  const [shipping, setShipping] = useState<ShippingConfig>(DEFAULT_SHIPPING);
+  useEffect(() => { fetchShippingConfig().then(setShipping); }, []);
 
   // Razorpay
   const [razorpay, setRazorpay] = useState({
@@ -62,15 +63,23 @@ export default function AdminSettings() {
     toast({ title: "✅ Settings saved!", description: "Store settings updated." });
   }
 
-  function saveShipping() {
-    saveShippingConfig(shipping);
-    toast({ title: "✅ Shipping saved!", description: `Shipping: ₹${shipping.shippingFee} · COD: ₹${shipping.codFee} · Free above: ₹${shipping.freeShippingAbove}` });
+  async function saveShipping() {
+    try {
+      const saved = await saveShippingConfig(shipping);
+      setShipping(saved);
+      toast({ title: "✅ Shipping saved!", description: `Shipping: ₹${saved.shippingFee} · COD: ₹${saved.codFee} · Free above: ₹${saved.freeShippingAbove}` });
+    } catch (e) {
+      toast({ title: "Could not save shipping settings", description: e instanceof Error ? e.message : "Try again", variant: "destructive" });
+    }
   }
 
-  function resetShipping() {
-    setShipping(DEFAULT_SHIPPING);
-    saveShippingConfig(DEFAULT_SHIPPING);
-    toast({ title: "Shipping reset to defaults" });
+  async function resetShipping() {
+    try {
+      setShipping(await saveShippingConfig(DEFAULT_SHIPPING));
+      toast({ title: "Shipping reset to defaults" });
+    } catch (e) {
+      toast({ title: "Could not reset shipping settings", description: e instanceof Error ? e.message : "Try again", variant: "destructive" });
+    }
   }
 
   async function testRazorpay() {

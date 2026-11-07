@@ -5,74 +5,71 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
-const DEFAULT_COUPONS = [
-  { id: 1, code: "ASSAM10", discount: 10, type: "percent", minOrder: 500, active: true },
-  { id: 2, code: "WELCOME50", discount: 50, type: "flat", minOrder: 300, active: true },
-  { id: 3, code: "TEA20", discount: 20, type: "percent", minOrder: 200, active: false },
-];
+import { apiFetch } from "@/lib/api";
 
-export type Coupon = typeof DEFAULT_COUPONS[0];
-
-export function loadCoupons(): Coupon[] {
-  try {
-    const saved = localStorage.getItem("apunbazar_coupons");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch {}
-  return DEFAULT_COUPONS;
+// Coupons live in the database. The server validates them and recomputes every discount at checkout.
+interface Coupon {
+  id: number; code: string; discountType: "percent" | "flat"; discountValue: number;
+  minimumOrderValue: number; maxUses: number | null; usedCount: number; active: boolean; expiresAt: string | null;
 }
 
 export default function AdminCoupons() {
   const { toast } = useToast();
-  const [coupons, setCoupons] = useState<Coupon[]>(DEFAULT_COUPONS);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [code, setCode] = useState("");
   const [discount, setDiscount] = useState("");
   const [type, setType] = useState<"percent" | "flat">("percent");
   const [minOrder, setMinOrder] = useState("");
+  const [maxUses, setMaxUses] = useState("");
 
-  // Load from localStorage
-  useEffect(() => {
-    setCoupons(loadCoupons());
-  }, []);
+  const fail = (title: string, e: unknown) =>
+    toast({ title, description: e instanceof Error ? e.message : "Try again", variant: "destructive" });
 
-  // Save to localStorage whenever coupons change
-  function saveCoupons(updated: Coupon[]) {
-    setCoupons(updated);
-    localStorage.setItem("apunbazar_coupons", JSON.stringify(updated));
+  async function load() {
+    try { setCoupons(await apiFetch<Coupon[]>("/api/coupons", { auth: true })); }
+    catch (e) { fail("Could not load coupons", e); }
+    finally { setLoading(false); }
   }
+  useEffect(() => { load(); }, []);
 
-  function addCoupon() {
+  async function addCoupon() {
     if (!code || !discount) {
       toast({ title: "Coupon code and discount are required", variant: "destructive" });
       return;
     }
-    const newCoupon: Coupon = {
-      id: Date.now(),
-      code: code.toUpperCase().trim(),
-      discount: Number(discount),
-      type,
-      minOrder: Number(minOrder) || 0,
-      active: true,
-    };
-    saveCoupons([...coupons, newCoupon]);
-    setCode(""); setDiscount(""); setMinOrder(""); setShowForm(false);
-    toast({ title: "✅ Coupon created!", description: `${newCoupon.code} is now active` });
+    try {
+      const created = await apiFetch<Coupon>("/api/coupons", {
+        method: "POST", auth: true,
+        body: JSON.stringify({
+          code: code.trim(), discountType: type, discountValue: Number(discount),
+          minimumOrderValue: Number(minOrder) || 0, maxUses: maxUses ? Number(maxUses) : null,
+        }),
+      });
+      setCoupons([created, ...coupons]);
+      setCode(""); setDiscount(""); setMinOrder(""); setMaxUses(""); setShowForm(false);
+      toast({ title: "✅ Coupon created!", description: `${created.code} is now active` });
+    } catch (e) { fail("Could not create coupon", e); }
   }
 
-  function toggleActive(id: number) {
-    const updated = coupons.map(c => c.id === id ? { ...c, active: !c.active } : c);
-    saveCoupons(updated);
-    const coupon = updated.find(c => c.id === id);
-    toast({ title: coupon?.active ? "Coupon activated" : "Coupon deactivated" });
+  async function toggleActive(id: number) {
+    const current = coupons.find(c => c.id === id);
+    if (!current) return;
+    try {
+      const updated = await apiFetch<Coupon>(`/api/coupons/${id}`, { method: "PATCH", auth: true, body: JSON.stringify({ active: !current.active }) });
+      setCoupons(coupons.map(c => c.id === id ? updated : c));
+      toast({ title: updated.active ? "Coupon activated" : "Coupon deactivated" });
+    } catch (e) { fail("Could not update coupon", e); }
   }
 
-  function deleteCoupon(id: number) {
+  async function deleteCoupon(id: number) {
     if (!confirm("Delete this coupon?")) return;
-    saveCoupons(coupons.filter(c => c.id !== id));
-    toast({ title: "Coupon deleted" });
+    try {
+      await apiFetch(`/api/coupons/${id}`, { method: "DELETE", auth: true });
+      setCoupons(coupons.filter(c => c.id !== id));
+      toast({ title: "Coupon deleted" });
+    } catch (e) { fail("Could not delete coupon", e); }
   }
 
   function copyCode(c: string) {
@@ -136,6 +133,15 @@ export default function AdminCoupons() {
                 placeholder="500"
               />
             </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Max Uses (optional)</label>
+              <Input
+                type="number"
+                value={maxUses}
+                onChange={(e) => setMaxUses(e.target.value)}
+                placeholder="Unlimited"
+              />
+            </div>
           </div>
           <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
             {type === "percent" && discount
@@ -173,9 +179,9 @@ export default function AdminCoupons() {
                   </div>
                 </td>
                 <td className="px-4 py-3 font-semibold text-primary">
-                  {c.type === "percent" ? `${c.discount}% OFF` : `₹${c.discount} OFF`}
+                  {c.discountType === "percent" ? `${c.discountValue}% OFF` : `₹${c.discountValue} OFF`}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">₹{c.minOrder}</td>
+                <td className="px-4 py-3 text-muted-foreground">₹{c.minimumOrderValue}</td>
                 <td className="px-4 py-3">
                   <Badge
                     variant={c.active ? "default" : "secondary"}
@@ -184,6 +190,7 @@ export default function AdminCoupons() {
                   >
                     {c.active ? "Active" : "Inactive"}
                   </Badge>
+                  <p className="text-[11px] text-muted-foreground mt-1">Used {c.usedCount}{c.maxUses ? ` / ${c.maxUses}` : ""}</p>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
@@ -211,7 +218,7 @@ export default function AdminCoupons() {
                 </td>
               </tr>
             ))}
-            {coupons.length === 0 && (
+            {!loading && coupons.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
                   No coupons yet. Create one using "Add Coupon"!

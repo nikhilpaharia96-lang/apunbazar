@@ -19,24 +19,13 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { trackPurchase, trackBeginCheckout, trackCouponApplied } from "@/lib/analytics";
-import { loadCoupons, type Coupon } from "@/pages/admin/coupons";
-import { loadShippingConfig, type ShippingConfig } from "@/lib/shipping-config";
+import { useQuery } from "@tanstack/react-query";
+import { fetchShippingConfig, DEFAULT_SHIPPING } from "@/lib/shipping-config";
+import { apiFetch } from "@/lib/api";
+import { openRazorpayCheckout, loadRazorpayScript, type GatewayParams } from "@/lib/razorpay";
 
-declare global {
-  interface Window {
-    Razorpay: new (options: RazorpayOptions) => { open(): void };
-  }
-}
-interface RazorpayOptions {
-  key: string; amount: number; currency: string; name: string; description: string;
-  order_id: string; prefill: { name: string; email: string; contact: string };
-  theme: { color: string };
-  handler: (response: RazorpayResponse) => void;
-  modal?: { ondismiss?: () => void };
-}
-interface RazorpayResponse {
-  razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string;
-}
+// Server-validated coupon preview. The amount actually charged is recomputed by the server.
+interface AppliedCoupon { code: string; discount: number }
 
 const checkoutSchema = z.object({
   customerName:    z.string().min(2, "Name required"),
@@ -50,17 +39,6 @@ const checkoutSchema = z.object({
   notes:           z.string().optional(),
 });
 type CheckoutForm = z.infer<typeof checkoutSchema>;
-
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise(resolve => {
-    if (window.Razorpay) { resolve(true); return; }
-    const s = document.createElement("script");
-    s.src = "https://checkout.razorpay.com/v1/checkout.js";
-    s.onload = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.body.appendChild(s);
-  });
-}
 
 // ── Trust badge component ──────────────────────────────────────────────────
 function TrustBadge({ icon: Icon, title, sub }: { icon: any; title: string; sub: string }) {
@@ -88,12 +66,12 @@ export default function Checkout() {
   const [razorpayLoading, setRpLoading]   = useState(false);
   const [couponOpen, setCouponOpen]       = useState(false);
   const [couponInput, setCouponInput]     = useState("");
-  const [appliedCoupon, setApplied]       = useState<Coupon | null>(null);
+  const [appliedCoupon, setApplied]       = useState<AppliedCoupon | null>(null);
   const [couponError, setCouponError]     = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
-  const [shippingConfig, setShipCfg]      = useState<ShippingConfig>(loadShippingConfig());
+  const { data: shippingConfig = DEFAULT_SHIPPING } = useQuery({ queryKey: ["shipping-config"], queryFn: fetchShippingConfig, staleTime: 60_000 });
 
-  useEffect(() => { setShipCfg(loadShippingConfig()); loadRazorpayScript(); }, []);
+  useEffect(() => { loadRazorpayScript(); }, []);
 
   const form = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
@@ -111,11 +89,7 @@ export default function Checkout() {
   const isFreeShip    = shippingConfig.freeShippingEnabled && cartTotal >= shippingConfig.freeShippingAbove;
   const shippingFee   = isFreeShip ? 0 : shippingConfig.shippingFee;
   const codFee        = paymentMethod === "cod" && shippingConfig.codEnabled ? shippingConfig.codFee : 0;
-  const discount      = appliedCoupon
-    ? appliedCoupon.type === "percent"
-      ? Math.round(cartTotal * appliedCoupon.discount / 100)
-      : appliedCoupon.discount
-    : 0;
+  const discount      = appliedCoupon ? appliedCoupon.discount : 0;
 
   // Original price savings from products
   const cartItems = Array.isArray(cart?.items) ? cart!.items : [];
@@ -128,85 +102,91 @@ export default function Checkout() {
 
   const grandTotal = cartTotal + shippingFee + codFee - discount;
 
-  function applyCoupon() {
+  async function applyCoupon() {
     setCouponError(""); setCouponLoading(true);
-    setTimeout(() => {
-      const found = loadCoupons().find(c => c.code === couponInput.toUpperCase().trim() && c.active);
-      if (!found) { setCouponError("Invalid or expired coupon"); setCouponLoading(false); return; }
-      if (cartTotal < found.minOrder) {
-        setCouponError(`Minimum order ₹${found.minOrder} required`);
-        setCouponLoading(false); return;
-      }
-      setApplied(found); setCouponLoading(false);
-      toast({ title: "🎉 Coupon Applied!", description: `₹${found.type === "percent" ? Math.round(cartTotal * found.discount / 100) : found.discount} discount!` });
-    }, 500);
-  }
-
-  function placeOrder(values: CheckoutForm, extraNotes?: string) {
-    if (!cart || cartItems.length === 0) return;
-    const items = cartItems.map(i => ({
-      productId: i.productId, quantity: i.quantity, price: i.product?.price ?? 0,
-    }));
-    const notes = [values.notes, extraNotes, appliedCoupon ? `Coupon:${appliedCoupon.code}(-₹${discount})` : undefined].filter(Boolean).join(" | ") || undefined;
-    createOrder.mutate(
-      { data: { ...values, paymentMethod: values.paymentMethod === "razorpay" ? "razorpay" : "cod", notes, items, sessionId } },
-      {
-        onSuccess: async order => {
-          if (cart?.items) await Promise.all(cart.items.map(i => fetch(`/api/cart/${i.id}`, { method: "DELETE" })));
-          invalidateCart();
-          try { localStorage.setItem("apunbazar_last_email", values.customerEmail); } catch {}
-          // Track purchase
-          trackPurchase(
-            order.orderNumber ?? String(order.id),
-            cartItems.map(i => ({
-              id: i.product?.id ?? i.productId,
-              name: i.product?.name ?? "Product",
-              price: i.product?.price ?? 0,
-              category: i.product?.categoryName,
-              quantity: i.quantity,
-            })),
-            grandTotal,
-            shippingFee,
-            appliedCoupon?.code,
-          );
-          setOrderId(order.id);
-          setSubmitted(true);
-        },
-        onError: () => toast({ title: "Order failed", description: "Please try again", variant: "destructive" }),
-      }
-    );
-  }
-
-  async function onSubmit(values: CheckoutForm) {
-    if (!cart || cartItems.length === 0) { toast({ title: "Cart is empty", variant: "destructive" }); return; }
-    if (values.paymentMethod === "cod") { placeOrder(values); return; }
-
-    setRpLoading(true);
-    if (!await loadRazorpayScript()) {
-      toast({ title: "Payment gateway failed to load", variant: "destructive" });
-      setRpLoading(false); return;
-    }
     try {
-      const resp = await fetch("/api/payments/razorpay-order", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: grandTotal }),
-      });
-      if (!resp.ok) throw new Error((await resp.json() as any).error ?? "Payment error");
-      const rzpData = await resp.json() as { orderId: string; keyId: string; amount: number; currency: string };
-      setRpLoading(false);
-      new window.Razorpay({
-        key: rzpData.keyId, amount: rzpData.amount, currency: rzpData.currency,
-        name: "ApunBazar", description: `Order of ${cart.itemCount} item(s)`,
-        order_id: rzpData.orderId,
-        prefill: { name: values.customerName, email: values.customerEmail, contact: values.customerPhone },
-        theme: { color: "#1a5c2a" },
-        handler: r => placeOrder(values, `Razorpay:${r.razorpay_payment_id}`),
-        modal: { ondismiss: () => toast({ title: "Payment cancelled" }) },
-      }).open();
-    } catch (err) {
-      toast({ title: "Payment setup failed", description: err instanceof Error ? err.message : "Try again", variant: "destructive" });
-      setRpLoading(false);
+      const r = await apiFetch<{ code: string; discount: number }>(
+        `/api/coupons/validate?code=${encodeURIComponent(couponInput.trim())}&subtotal=${cartTotal}`,
+      );
+      setApplied({ code: r.code, discount: r.discount });
+      trackCouponApplied(r.code, r.discount);
+      toast({ title: "🎉 Coupon Applied!", description: `₹${r.discount} discount!` });
+    } catch (e) {
+      setCouponError(e instanceof Error ? e.message : "Invalid or expired coupon");
+    } finally {
+      setCouponLoading(false);
     }
+  }
+
+  function finishOrder(order: { id: number; orderNumber?: string }, values: CheckoutForm) {
+    invalidateCart();
+    try { localStorage.setItem("apunbazar_last_email", values.customerEmail); } catch {}
+    trackPurchase(
+      order.orderNumber ?? String(order.id),
+      cartItems.map(i => ({
+        id: i.product?.id ?? i.productId, name: i.product?.name ?? "Product",
+        price: i.product?.price ?? 0, category: i.product?.categoryName, quantity: i.quantity,
+      })),
+      grandTotal, shippingFee, appliedCoupon?.code,
+    );
+    setOrderId(order.id);
+    setSubmitted(true);
+  }
+
+  async function clearCartItems() {
+    if (cart?.items) await Promise.all(cart.items.map(i => fetch(`/api/cart/${i.id}`, { method: "DELETE" }).catch(() => {})));
+  }
+
+  function onSubmit(values: CheckoutForm) {
+    if (!cart || cartItems.length === 0) { toast({ title: "Cart is empty", variant: "destructive" }); return; }
+    // Only product ids + quantities are meaningful: the server prices the order from the database.
+    const items = cartItems.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.product?.price ?? 0 }));
+    createOrder.mutate(
+      {
+        data: {
+          ...values,
+          paymentMethod: values.paymentMethod === "razorpay" ? "razorpay" : "cod",
+          notes: values.notes || undefined, items, sessionId,
+          // couponCode is validated and applied server-side
+          ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
+        } as Parameters<typeof createOrder.mutate>[0]["data"],
+      },
+      {
+        onSuccess: async (order) => {
+          await clearCartItems();
+          const gateway = (order as unknown as { razorpay?: GatewayParams }).razorpay;
+          if (values.paymentMethod !== "razorpay" || !gateway) { finishOrder(order, values); return; }
+
+          // Online payment: the order exists (stock reserved); pay for it, then verify on the server
+          setRpLoading(true);
+          await openRazorpayCheckout({
+            gateway, orderId: order.id,
+            description: `Order ${order.orderNumber}`,
+            prefill: { name: values.customerName, email: values.customerEmail, contact: values.customerPhone },
+            onPaid: () => { setRpLoading(false); finishOrder(order, values); },
+            onDismiss: () => {
+              setRpLoading(false);
+              toast({ title: "Payment not completed", description: "Your order is saved. You can pay from Track Order." });
+              try { localStorage.setItem("apunbazar_last_email", values.customerEmail); } catch {}
+              invalidateCart();
+              navigate(`/orders/${order.id}`);
+            },
+            onError: (message) => {
+              setRpLoading(false);
+              toast({ title: "Payment issue", description: message, variant: "destructive" });
+              invalidateCart();
+              navigate(`/orders/${order.id}`);
+            },
+          });
+          setRpLoading(false);
+        },
+        onError: (err) => toast({
+          title: "Order failed",
+          description: (err as { data?: { error?: string } }).data?.error ?? "Please try again",
+          variant: "destructive",
+        }),
+      },
+    );
   }
 
   // ── Success screen ─────────────────────────────────────────────────────────

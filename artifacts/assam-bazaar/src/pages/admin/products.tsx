@@ -113,10 +113,12 @@ export default function AdminProducts() {
     if (editingId) {
       updateProduct.mutate({ id: editingId, data: payload }, {
         onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() }); setDialogOpen(false); toast({ title: "Product updated" }); },
+        onError: (err) => toast({ title: "Action failed", description: (err as { data?: { error?: string } }).data?.error ?? "Please try again.", variant: "destructive" }),
       });
     } else {
       createProduct.mutate({ data: payload }, {
         onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() }); setDialogOpen(false); toast({ title: "Product created" }); },
+        onError: (err) => toast({ title: "Action failed", description: (err as { data?: { error?: string } }).data?.error ?? "Please try again.", variant: "destructive" }),
       });
     }
   }
@@ -125,6 +127,7 @@ export default function AdminProducts() {
     if (!confirm(`Delete "${name}"?`)) return;
     deleteProduct.mutate({ id }, {
       onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() }); toast({ title: "Product deleted" }); },
+      onError: (err) => toast({ title: "Action failed", description: (err as { data?: { error?: string } }).data?.error ?? "Please try again.", variant: "destructive" }),
     });
   }
 

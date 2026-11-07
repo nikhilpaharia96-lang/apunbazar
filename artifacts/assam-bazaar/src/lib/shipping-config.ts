@@ -1,14 +1,14 @@
 /**
- * shipping-config.ts
- * Path: artifacts/assam-bazaar/src/lib/shipping-config.ts
- * 
- * Shipping settings — admin se manage hoti hain, localStorage mein save hoti hain
+ * shipping-config.ts — Shipping settings.
+ * Source of truth is the database (GET/PUT /api/settings/shipping); the server uses the
+ * same values when it computes an order total. Nothing is stored in localStorage.
  */
+import { apiFetch } from "@/lib/api";
 
 export interface ShippingConfig {
-  shippingFee: number;        // default: 49
-  freeShippingAbove: number;  // default: 999
-  codFee: number;             // default: 30
+  shippingFee: number;
+  freeShippingAbove: number;
+  codFee: number;
   codEnabled: boolean;
   freeShippingEnabled: boolean;
 }
@@ -21,30 +21,31 @@ export const DEFAULT_SHIPPING: ShippingConfig = {
   freeShippingEnabled: true,
 };
 
-export function loadShippingConfig(): ShippingConfig {
+export async function fetchShippingConfig(): Promise<ShippingConfig> {
   try {
-    const saved = localStorage.getItem("apunbazar_shipping");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return { ...DEFAULT_SHIPPING, ...parsed };
-    }
-  } catch {}
-  return DEFAULT_SHIPPING;
+    return { ...DEFAULT_SHIPPING, ...(await apiFetch<Partial<ShippingConfig>>("/api/settings/shipping")) };
+  } catch {
+    return DEFAULT_SHIPPING;
+  }
 }
 
-export function saveShippingConfig(config: ShippingConfig): void {
-  localStorage.setItem("apunbazar_shipping", JSON.stringify(config));
+/** Admin / staff with the "settings" permission only — enforced by the server. */
+export function saveShippingConfig(config: ShippingConfig): Promise<ShippingConfig> {
+  return apiFetch<ShippingConfig>("/api/settings/shipping", {
+    method: "PUT",
+    auth: true,
+    body: JSON.stringify(config),
+  });
 }
 
-/** Cart total ke hisaab se shipping calculate karo */
+/** Cart total ke hisaab se shipping calculate karo (display only — server recomputes). */
 export function calculateShipping(
   cartTotal: number,
   paymentMethod: "cod" | "razorpay" | "online",
-  config?: ShippingConfig
+  config: ShippingConfig = DEFAULT_SHIPPING,
 ): { shipping: number; cod: number; total: number; isFree: boolean } {
-  const c = config ?? loadShippingConfig();
-  const isFree = c.freeShippingEnabled && cartTotal >= c.freeShippingAbove;
-  const shipping = isFree ? 0 : c.shippingFee;
-  const cod = (paymentMethod === "cod" && c.codEnabled) ? c.codFee : 0;
+  const isFree = config.freeShippingEnabled && cartTotal >= config.freeShippingAbove;
+  const shipping = isFree ? 0 : config.shippingFee;
+  const cod = paymentMethod === "cod" && config.codEnabled ? config.codFee : 0;
   return { shipping, cod, total: shipping + cod, isFree };
 }

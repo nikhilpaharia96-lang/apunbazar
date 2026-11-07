@@ -1,7 +1,8 @@
 const { Client } = require('pg');
 
+if (!process.env.DATABASE_URL) { console.error('Set DATABASE_URL first'); process.exit(1); }
 const client = new Client({
-  connectionString: 'postgresql://postgres:Nikhil9613@localhost:5432/apunbazar'
+  connectionString: process.env.DATABASE_URL
 });
 
 async function setup() {

@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
-import { useGetOrder, getGetOrderQueryKey, useAddToCart } from "@workspace/api-client-react";
+import { useAddToCart, type Order } from "@workspace/api-client-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { fetchGatewayParams, openRazorpayCheckout } from "@/lib/razorpay";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Package, MapPin, CreditCard, CheckCircle, Circle, Truck, RefreshCw, Loader2, MessageCircle, Edit2 } from "lucide-react";
 import { useSession } from "@/hooks/use-session";
@@ -28,15 +31,44 @@ export default function OrderDetail() {
   const addToCart = useAddToCart();
   const [reordering, setReordering] = useState(false);
 
-  const { data: order, isLoading } = useGetOrder(id, {
-    query: { enabled: !!id, queryKey: getGetOrderQueryKey(id) },
+  const queryClient = useQueryClient();
+  const [email, setEmail] = useState<string>(() => {
+    try { return localStorage.getItem("apunbazar_last_email") ?? ""; } catch { return ""; }
   });
+  const [emailInput, setEmailInput] = useState("");
+  const [paying, setPaying] = useState(false);
+
+  // The order is only returned to the person who knows the checkout email (admins use their token)
+  const { data: order, isLoading } = useQuery({
+    queryKey: ["order", id, email],
+    enabled: !!id,
+    retry: false,
+    queryFn: () => apiFetch<Order>(`/api/orders/${id}${email ? `?email=${encodeURIComponent(email)}` : ""}`, { auth: true }),
+  });
+
+  async function handlePayNow() {
+    if (!order) return;
+    setPaying(true);
+    try {
+      const gateway = await fetchGatewayParams(order.id, order.customerEmail);
+      await openRazorpayCheckout({
+        gateway, orderId: order.id, description: `Order ${order.orderNumber}`,
+        prefill: { name: order.customerName, email: order.customerEmail, contact: order.customerPhone },
+        onPaid: () => { setPaying(false); toast({ title: "Payment successful 🎉" }); queryClient.invalidateQueries({ queryKey: ["order", id] }); },
+        onDismiss: () => setPaying(false),
+        onError: (message) => { setPaying(false); toast({ title: "Payment issue", description: message, variant: "destructive" }); },
+      });
+    } catch (e) {
+      setPaying(false);
+      toast({ title: "Could not start payment", description: e instanceof Error ? e.message : "Try again", variant: "destructive" });
+    }
+  }
 
   async function handleReorder() {
     if (!sessionId || !order) return;
     setReordering(true);
     try {
-      const orderItems = order.items as Array<{ productId: number; productName: string; price: number; quantity: number }>;
+      const orderItems = order.items as Array<{ productId: number; price: number; quantity: number }>;
       for (const item of orderItems) {
         await new Promise<void>((resolve, reject) =>
           addToCart.mutate({ data: { sessionId, productId: item.productId, quantity: item.quantity } },
@@ -65,7 +97,12 @@ export default function OrderDetail() {
   if (!order) {
     return (
       <div className="page-enter container mx-auto px-4 py-16 max-w-2xl text-center">
-        <p className="text-gray-500">Order not found.</p>
+        <p className="text-gray-500 mb-4">We couldn't find this order{email ? " for that email" : ""}. Enter the email address used at checkout to view it.</p>
+        <form onSubmit={e => { e.preventDefault(); setEmail(emailInput.trim()); }} style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+          <input type="email" required value={emailInput} onChange={e => setEmailInput(e.target.value)} placeholder="Email used at checkout"
+            style={{ height: 44, padding: "0 14px", border: "1.5px solid #e0e0e0", borderRadius: 12, fontSize: 14, minWidth: 240 }} />
+          <button type="submit" style={{ background: "#1a5a32", color: "#fff", border: "none", borderRadius: 12, padding: "0 22px", height: 44, fontWeight: 700, cursor: "pointer" }}>View order</button>
+        </form>
         <Link href="/orders">
           <button style={{ marginTop: 16, background: "#1a5a32", color: "#fff", border: "none", borderRadius: 12, padding: "12px 28px", fontWeight: 700, cursor: "pointer" }}>
             Back to Orders
@@ -77,7 +114,8 @@ export default function OrderDetail() {
 
   const currentStep = statusSteps.indexOf(order.status);
   const sc = statusColors[order.status] ?? statusColors.pending;
-  const items = order.items as Array<{ productId: number; productName: string; productImage: string; price: number; quantity: number }>;
+  const items = (order.items as Array<{ productId: number; name?: string; imageUrl?: string; productName?: string; productImage?: string; price: number; quantity: number }>)
+    .map(i => ({ ...i, productName: i.name ?? i.productName ?? `Product #${i.productId}`, productImage: i.imageUrl ?? i.productImage ?? "" }));
 
   return (
     <div className="page-enter min-h-screen" style={{ background: "#f5f5f0" }}>
@@ -222,6 +260,15 @@ export default function OrderDetail() {
           <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: order.paymentStatus === "paid" ? "#dcfce7" : "#fff8e1", color: order.paymentStatus === "paid" ? "#15803d" : "#b45309", borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700, marginTop: 8 }}>
             Payment {order.paymentStatus === "paid" ? "Completed" : "Pending"}
           </div>
+          {order.paymentMethod === "razorpay" && order.paymentStatus === "pending" && !["cancelled", "refunded"].includes(order.status) && (
+            <div style={{ marginTop: 12 }}>
+              <button onClick={handlePayNow} disabled={paying}
+                style={{ background: "#1a5a32", color: "#fff", border: "none", borderRadius: 12, padding: "11px 22px", fontWeight: 700, fontSize: 14, cursor: paying ? "wait" : "pointer", opacity: paying ? 0.7 : 1 }}>
+                {paying ? "Opening payment…" : `Pay ₹${(order.total ?? 0).toLocaleString("en-IN")} now`}
+              </button>
+              <p className="text-xs text-gray-400 mt-1.5">Your items are reserved for you. Complete payment to confirm the order.</p>
+            </div>
+          )}
           {order.notes && (
             <p className="text-gray-400 text-xs mt-3 italic">Note: {order.notes}</p>
           )}
