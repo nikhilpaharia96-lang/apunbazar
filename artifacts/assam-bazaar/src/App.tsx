@@ -49,6 +49,10 @@ const AdminOrders           = lazy(() => import("@/pages/admin/orders"));
 const AdminCategories       = lazy(() => import("@/pages/admin/categories"));
 const AdminAnalytics        = lazy(() => import("@/pages/admin/analytics"));
 const AdminCoupons          = lazy(() => import("@/pages/admin/coupons"));
+const AdminCustomers        = lazy(() => import("@/pages/admin/customers"));
+const AdminInventory        = lazy(() => import("@/pages/admin/inventory"));
+const AdminPayments         = lazy(() => import("@/pages/admin/payments"));
+const AdminReports          = lazy(() => import("@/pages/admin/reports"));
 const AdminSettings         = lazy(() => import("@/pages/admin/settings"));
 const AdminSecurity         = lazy(() => import("@/pages/admin/security"));
 const SliderManager         = lazy(() => import("@/pages/admin/slider"));
@@ -177,6 +181,10 @@ function Router() {
             <Route path="/admin/orders"           component={AdminOrders} />
             <Route path="/admin/analytics"        component={AdminAnalytics} />
             <Route path="/admin/coupons"          component={AdminCoupons} />
+            <Route path="/admin/customers"        component={AdminCustomers} />
+            <Route path="/admin/inventory"        component={AdminInventory} />
+            <Route path="/admin/payments"         component={AdminPayments} />
+            <Route path="/admin/reports"          component={AdminReports} />
             <Route path="/admin/settings"         component={AdminSettings} />
             <Route path="/admin/security"         component={AdminSecurity} />
             <Route path="/admin/slider"           component={SliderManager} />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useListOrders, useUpdateOrderStatus, getListOrdersQueryKey } from "@workspace/api-client-react";
+import { useUpdateOrderStatus } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,9 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin, Phone, Mail, User, Package, CreditCard, ChevronRight, StickyNote } from "lucide-react";
 import { safeArray } from "@/lib/safe-array";
+import { SearchBar, FilterDropdown } from "@/components/admin/ui";
+import { useAdminQuery, downloadCsv, errMsg, todayIST } from "@/lib/admin-api";
+import { Download } from "lucide-react";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -64,9 +67,15 @@ export default function AdminOrders() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useListOrders(
-    { status: statusFilter || undefined, page, limit: 15 },
-    { query: { queryKey: getListOrdersQueryKey({ status: statusFilter || undefined, page, limit: 15 }) } }
+  const [q, setQ] = useState("");
+  const [payFilter, setPayFilter] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  // Real server-side search + filters (order no., name, email, phone, payment status, date range)
+  const { data, isLoading } = useAdminQuery<{ orders: Order[]; total: number; totalPages: number }>(
+    "/api/orders",
+    { status: statusFilter, paymentStatus: payFilter, q, from, to, page, limit: 15 },
   );
 
   const updateStatus = useUpdateOrderStatus();
@@ -80,7 +89,7 @@ export default function AdminOrders() {
       { id: orderId, data: { status: status as typeof ALL_STATUSES[number] } },
       {
         onSuccess: (updated) => {
-          queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+          queryClient.invalidateQueries({ queryKey: ["admin"] });
           if (selectedOrder?.id === orderId) {
             setSelectedOrder(updated as Order);
           }
@@ -118,6 +127,19 @@ export default function AdminOrders() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+          <SearchBar className="flex-1" value={q} onChange={(v) => { setQ(v); setPage(1); }} placeholder="Search order no., name, email or phone" />
+          <FilterDropdown label="Payment status" value={payFilter} onChange={(v) => { setPayFilter(v); setPage(1); }} className="lg:w-44"
+            options={[{ value: "", label: "All payments" }, { value: "paid", label: "Paid" }, { value: "pending", label: "Payment pending" }, { value: "failed", label: "Failed" }, { value: "refunded", label: "Refunded" }]} />
+          <label className="sr-only" htmlFor="ord-from">From date</label>
+          <input id="ord-from" type="date" value={from} max={to || undefined} onChange={(e) => { setFrom(e.target.value); setPage(1); }} className="h-10 px-2.5 rounded-lg border border-neutral-200 bg-white text-sm" />
+          <label className="sr-only" htmlFor="ord-to">To date</label>
+          <input id="ord-to" type="date" value={to} min={from || undefined} onChange={(e) => { setTo(e.target.value); setPage(1); }} className="h-10 px-2.5 rounded-lg border border-neutral-200 bg-white text-sm" />
+          <Button variant="outline" className="gap-2" onClick={() => downloadCsv("/api/manage/reports/export", { type: "orders", from: from || "2020-01-01", to: to || todayIST() }).catch((e) => toast({ title: "Export failed", description: errMsg(e), variant: "destructive" }))}>
+            <Download className="h-4 w-4" />Export
+          </Button>
         </div>
 
         <div className="border rounded-xl overflow-hidden bg-card">

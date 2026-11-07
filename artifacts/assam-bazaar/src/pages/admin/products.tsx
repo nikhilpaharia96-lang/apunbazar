@@ -21,6 +21,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { ImageUploadButton } from "@/components/admin/ImageUpload";
 
 const API = "/api";
 
@@ -30,7 +31,7 @@ const productSchema = z.object({
   price: z.coerce.number().positive(),
   originalPrice: z.coerce.number().optional(),
   categoryId: z.coerce.number().positive("Category is required"),
-  imageUrl: z.string().url("Must be a valid URL"),
+  imageUrl: z.string().refine((v) => /^https:\/\/\S+$/.test(v) || /^\/api\/uploads\/[\w-]+$/.test(v), "Use an https:// link or upload an image"),
   stock: z.coerce.number().int().min(0),
   featured: z.boolean(),
   artisan: z.string().optional(),
@@ -313,14 +314,21 @@ export default function AdminProducts() {
               )} />
               <FormField control={form.control} name="imageUrl" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl><Input placeholder="https://..." {...field} /></FormControl>
+                  <FormLabel>Main image</FormLabel>
+                  <div className="flex items-center gap-3">
+                    {field.value && <img src={field.value} alt="Main product preview" className="h-14 w-14 rounded-lg object-cover border bg-muted" />}
+                    <ImageUploadButton label="Upload" onUploaded={(url) => form.setValue("imageUrl", url, { shouldValidate: true, shouldDirty: true })} />
+                  </div>
+                  <FormControl><Input placeholder="…or paste an https:// image link" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="images" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Additional Images (ek line mein ek URL)</FormLabel>
+                  <div className="flex items-center justify-between gap-2">
+                    <FormLabel>Additional images (one link per line)</FormLabel>
+                    <ImageUploadButton label="Upload" onUploaded={(url) => form.setValue("images", [form.getValues("images"), url].filter(Boolean).join("\n"), { shouldDirty: true })} />
+                  </div>
                   <FormControl><Textarea rows={3} placeholder={"https://example.com/img1.jpg\nhttps://example.com/img2.jpg"} {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>

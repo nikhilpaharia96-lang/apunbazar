@@ -1,459 +1,153 @@
 /**
- * pages/admin/analytics.tsx — Live Analytics Dashboard
- *
- * Shows real data from API + links to GA4 and Clarity dashboards.
- * Visitors / Sessions / Heatmaps come from GA4 & Clarity (external).
- * Orders / Revenue / Products / Conversion come from our own API.
+ * pages/admin/analytics.tsx — Sales analytics (real data from /api/manage/analytics/*)
+ * Revenue = not cancelled/refunded AND (COD or online-paid). Days are India time.
  */
+import { useState } from "react";
+import { IndianRupee, ShoppingBag, Receipt, Boxes, UserPlus, Repeat, Download } from "lucide-react";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, Legend } from "recharts";
+import { PageHeader, DashboardCard, StatCard, EmptyState, ErrorState, DataTable, inr, compactInr, LoadingSkeleton } from "@/components/admin/ui";
+import { DateRange } from "@/components/admin/DateRange";
+import { T } from "@/components/admin/tokens";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useAdminQuery, useDateRange, downloadCsv, errMsg } from "@/lib/admin-api";
 
-import { useMemo } from "react";
-import {
-  useGetAdminStats,
-  useGetRecentOrders,
-  useGetTopProducts,
-  useGetSalesByCategory,
-} from "@workspace/api-client-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, PieChart, Pie, Legend,
-} from "recharts";
-import {
-  TrendingUp, ShoppingBag, Package, Users, IndianRupee,
-  BarChart3, ExternalLink, MousePointerClick, Eye,
-  Zap, Activity, ArrowUpRight,
-} from "lucide-react";
-
-// ── Config ─────────────────────────────────────────────────────────────────
-const GA_ID      = import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined;
-const CLARITY_ID = import.meta.env.VITE_CLARITY_PROJECT_ID as string | undefined;
-
-const GA_URL      = GA_ID
-  ? `https://analytics.google.com/analytics/web/#/p${GA_ID.replace("G-", "")}/reports/intelligenthome`
-  : "https://analytics.google.com";
-const CLARITY_URL = CLARITY_ID
-  ? `https://clarity.microsoft.com/projects/view/${CLARITY_ID}/dashboard`
-  : "https://clarity.microsoft.com";
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-function normalise<T>(raw: T | { data: T } | undefined | null): T | undefined {
-  if (raw == null) return undefined;
-  if (typeof raw === "object" && "data" in (raw as object)) return (raw as { data: T }).data;
-  return raw as T;
+interface Overview {
+  revenue: number; orders: number; placedOrders: number; cancelledOrders: number; averageOrderValue: number; unitsSold: number;
+  newCustomers: number; repeatCustomers: number;
+  previous: { revenue: number; orders: number };
+  paymentMix: { method: string; orders: number; revenue: number }[];
+  statusBreakdown: { status: string; count: number }[];
 }
-function normaliseArray<T>(raw: T[] | { data: T[] } | undefined | null): T[] {
-  if (raw == null) return [];
-  if (!Array.isArray(raw) && typeof raw === "object" && "data" in (raw as object))
-    return (raw as { data: T[] }).data ?? [];
-  return Array.isArray(raw) ? raw : [];
-}
+interface TrendRow { date: string; revenue: number; orders: number }
+interface TopProduct { id: number; name: string; units: number; revenue: number }
+interface CategoryRow { categoryName: string; orderCount: number; units: number; revenue: number }
 
-function RupeeValue({ amount }: { amount: number }) {
-  return (
-    <span>
-      <span style={{ fontFamily: "system-ui, sans-serif", fontWeight: 700 }}>₹</span>
-      {amount.toLocaleString("en-IN")}
-    </span>
-  );
-}
+const pct = (cur: number, prev: number) => (prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null);
+const METHOD: Record<string, string> = { cod: "Cash on Delivery", razorpay: "Online (Razorpay)" };
 
-const COLORS = ["#1a5c2a", "#e8920a", "#2563eb", "#7c3aed", "#dc2626"];
-
-const statusColors: Record<string, string> = {
-  pending:    "bg-yellow-100 text-yellow-800",
-  confirmed:  "bg-blue-100 text-blue-800",
-  processing: "bg-purple-100 text-purple-800",
-  shipped:    "bg-indigo-100 text-indigo-800",
-  delivered:  "bg-green-100 text-green-800",
-  cancelled:  "bg-red-100 text-red-800",
-};
-
-// ── Stat Card ──────────────────────────────────────────────────────────────
-function StatCard({
-  label, value, sub, icon: Icon, color, loading,
-}: {
-  label: string; value: React.ReactNode; sub?: string;
-  icon: React.ElementType; color: string; loading?: boolean;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: color + "20" }}>
-            <Icon className="h-5 w-5" style={{ color }} />
-          </div>
-          {sub && (
-            <span className="text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <ArrowUpRight className="h-3 w-3" />{sub}
-            </span>
-          )}
-        </div>
-        {loading
-          ? <Skeleton className="h-8 w-28 rounded-lg mb-1" />
-          : <p className="text-2xl font-bold">{value}</p>
-        }
-        <p className="text-muted-foreground text-xs mt-1">{label}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ── External Tool Card ─────────────────────────────────────────────────────
-function ExternalCard({
-  title, description, href, icon: Icon, color, features,
-}: {
-  title: string; description: string; href: string;
-  icon: React.ElementType; color: string; features: string[];
-}) {
-  return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: color + "20" }}>
-              <Icon className="h-5 w-5" style={{ color }} />
-            </div>
-            <div>
-              <p className="font-semibold text-sm">{title}</p>
-              <p className="text-muted-foreground text-xs">{description}</p>
-            </div>
-          </div>
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-white transition-opacity hover:opacity-90"
-            style={{ background: color }}
-          >
-            Open <ExternalLink className="h-3 w-3" />
-          </a>
-        </div>
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {features.map(f => (
-            <span key={f} className="text-[11px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">
-              {f}
-            </span>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ── Main Component ─────────────────────────────────────────────────────────
 export default function AdminAnalytics() {
-  const statsQuery    = useGetAdminStats();
-  const recentQuery   = useGetRecentOrders({ limit: 5 });
-  const topQuery      = useGetTopProducts({ limit: 5 });
-  const categoryQuery = useGetSalesByCategory();
+  const r = useDateRange(30);
+  const [group, setGroup] = useState<"day" | "week" | "month">("day");
+  const { toast } = useToast();
+  const range = { from: r.from, to: r.to };
 
-  const stats    = useMemo(() => normalise(statsQuery.data),          [statsQuery.data]);
-  const recent   = useMemo(() => normaliseArray(recentQuery.data),    [recentQuery.data]);
-  const top      = useMemo(() => normaliseArray(topQuery.data),       [topQuery.data]);
-  const catSales = useMemo(() => normaliseArray(categoryQuery.data),  [categoryQuery.data]);
+  const overview = useAdminQuery<Overview>("/api/manage/analytics/overview", range);
+  const trend = useAdminQuery<TrendRow[]>("/api/manage/analytics/trend", { ...range, group });
+  const top = useAdminQuery<TopProduct[]>("/api/manage/analytics/top-products", { ...range, limit: 8 });
+  const cats = useAdminQuery<CategoryRow[]>("/api/manage/analytics/categories", range);
+  const o = overview.data;
 
-  const isLoading = statsQuery.isLoading;
-
-  // Conversion rate = orders / unique customers (rough estimate)
-  const conversionRate = stats
-    ? ((stats.totalOrders / Math.max(stats.totalCustomers, 1)) * 100).toFixed(1)
-    : "—";
+  async function exportSales() {
+    try { await downloadCsv("/api/manage/reports/export", { type: "sales", ...range }); }
+    catch (e) { toast({ title: "Export failed", description: errMsg(e), variant: "destructive" }); }
+  }
 
   return (
-    <div className="page-enter p-4 sm:p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="page-enter p-4 sm:p-6 space-y-5">
+      <PageHeader
+        eyebrow="Insights" title="Sales Analytics"
+        description="Counts only real sales: cancelled, refunded and unpaid online orders are excluded."
+        actions={<Button variant="outline" size="sm" onClick={exportSales} className="gap-2"><Download className="h-4 w-4" />Export CSV</Button>}
+      />
+      <DateRange from={r.from} to={r.to} onFrom={r.setFrom} onTo={r.setTo} onPreset={r.preset} />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="font-serif text-2xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground text-sm">Live store performance + behaviour insights</p>
+      {overview.isError ? <ErrorState message="Couldn't load analytics." onRetry={() => overview.refetch()} /> : (
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          <StatCard label="Revenue" value={inr(o?.revenue ?? 0)} icon={IndianRupee} loading={overview.isLoading} trend={o ? pct(o.revenue, o.previous.revenue) : null} hint="vs previous period" />
+          <StatCard label="Orders" value={o?.orders ?? 0} icon={ShoppingBag} loading={overview.isLoading} tone="blue" trend={o ? pct(o.orders, o.previous.orders) : null} hint={o ? `${o.cancelledOrders} cancelled` : undefined} />
+          <StatCard label="Avg. order" value={inr(o?.averageOrderValue ?? 0)} icon={Receipt} loading={overview.isLoading} tone="amber" />
+          <StatCard label="Units sold" value={o?.unitsSold ?? 0} icon={Boxes} loading={overview.isLoading} tone="violet" />
+          <StatCard label="New customers" value={o?.newCustomers ?? 0} icon={UserPlus} loading={overview.isLoading} />
+          <StatCard label="Repeat customers" value={o?.repeatCustomers ?? 0} icon={Repeat} loading={overview.isLoading} tone="rose" />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-xs text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-full font-medium">
-            <Activity className="h-3 w-3 animate-pulse" /> Live Data
-          </span>
-        </div>
-      </div>
+      )}
 
-      {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Revenue"
-          value={stats ? <RupeeValue amount={stats.totalRevenue} /> : "—"}
-          sub={stats ? `₹${stats.revenueThisMonth.toLocaleString("en-IN")} this month` : undefined}
-          icon={IndianRupee}
-          color="#1a5c2a"
-          loading={isLoading}
-        />
-        <StatCard
-          label="Total Orders"
-          value={stats?.totalOrders ?? "—"}
-          sub={stats ? `${stats.pendingOrders} pending` : undefined}
-          icon={ShoppingBag}
-          color="#e8920a"
-          loading={isLoading}
-        />
-        <StatCard
-          label="Products"
-          value={stats?.totalProducts ?? "—"}
-          icon={Package}
-          color="#2563eb"
-          loading={isLoading}
-        />
-        <StatCard
-          label="Conversion Rate"
-          value={`${conversionRate}%`}
-          sub={stats ? `${stats.totalCustomers} customers` : undefined}
-          icon={TrendingUp}
-          color="#7c3aed"
-          loading={isLoading}
-        />
-      </div>
-
-      {/* ── External Tools ── */}
-      <div>
-        <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
-          Behaviour Analytics Tools
-        </h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <ExternalCard
-            title="Google Analytics 4"
-            description={GA_ID ? `Tracking ID: ${GA_ID}` : "Set VITE_GA_MEASUREMENT_ID in .env"}
-            href={GA_URL}
-            icon={BarChart3}
-            color="#e37400"
-            features={["Page Views", "Add to Cart", "Purchases", "Revenue", "Traffic Sources", "Referrals", "Coupon Usage"]}
-          />
-          <ExternalCard
-            title="Microsoft Clarity"
-            description={CLARITY_ID ? `Project: ${CLARITY_ID}` : "Set VITE_CLARITY_PROJECT_ID in .env"}
-            href={CLARITY_URL}
-            icon={MousePointerClick}
-            color="#0078d4"
-            features={["Session Recordings", "Heatmaps", "Scroll Depth", "Rage Clicks", "Dead Clicks", "User Journeys"]}
-          />
-        </div>
-
-        {/* Setup warning if env vars missing */}
-        {(!GA_ID || !CLARITY_ID) && (
-          <div className="mt-3 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <Zap className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-semibold text-amber-800">Analytics not fully configured</p>
-              <p className="text-amber-700 text-xs mt-1">
-                Add these to your Vercel/Railway environment variables:
-                {!GA_ID && <span className="block mt-1 font-mono bg-amber-100 px-2 py-0.5 rounded">VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX</span>}
-                {!CLARITY_ID && <span className="block mt-1 font-mono bg-amber-100 px-2 py-0.5 rounded">VITE_CLARITY_PROJECT_ID=xxxxxxxxxx</span>}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Charts Row ── */}
-      <div className="grid lg:grid-cols-2 gap-6">
-
-        {/* Sales by Category */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-primary" /> Sales by Category
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {categoryQuery.isLoading
-              ? <Skeleton className="h-48 w-full rounded-xl" />
-              : catSales.length === 0
-                ? <p className="text-sm text-muted-foreground text-center py-8">No sales data yet</p>
-                : (
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={catSales} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="categoryName" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} />
-                      <Tooltip
-                        formatter={(v: number) => [`₹${v.toLocaleString("en-IN")}`, "Revenue"]}
-                        contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                      />
-                      <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
-                        {catSales.map((_, i) => (
-                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )
-            }
-          </CardContent>
-        </Card>
-
-        {/* Category Pie */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" /> Revenue Share
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {categoryQuery.isLoading
-              ? <Skeleton className="h-48 w-full rounded-xl" />
-              : catSales.length === 0
-                ? <p className="text-sm text-muted-foreground text-center py-8">No data yet</p>
-                : (
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={catSales}
-                        dataKey="revenue"
-                        nameKey="categoryName"
-                        cx="50%" cy="50%"
-                        outerRadius={80}
-                        label={({ categoryName, percentage }) =>
-                          `${categoryName} ${percentage?.toFixed(0) ?? ""}%`
-                        }
-                        labelLine={false}
-                      >
-                        {catSales.map((_, i) => (
-                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(v: number) => [`₹${v.toLocaleString("en-IN")}`, "Revenue"]}
-                        contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )
-            }
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Top Products + Recent Orders ── */}
-      <div className="grid lg:grid-cols-2 gap-6">
-
-        {/* Top Products */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Package className="h-4 w-4 text-primary" /> Top Products
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {topQuery.isLoading
-              ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg mb-2" />)
-              : top.length === 0
-                ? <p className="text-sm text-muted-foreground text-center py-6">No product data yet</p>
-                : (
-                  <div className="space-y-3">
-                    {top.map((p, i) => (
-                      <div key={p.id} className="flex items-center gap-3">
-                        <span className="w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center text-white flex-shrink-0"
-                          style={{ background: COLORS[i % COLORS.length] }}>
-                          {i + 1}
-                        </span>
-                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                          <img src={p.imageUrl} alt={p.name}
-                            className="w-full h-full object-cover"
-                            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{p.name}</p>
-                          <p className="text-xs text-muted-foreground">{p.categoryName}</p>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-bold">
-                            <span style={{ fontFamily: "system-ui" }}>₹</span>
-                            {Number(p.revenue ?? 0).toLocaleString("en-IN")}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{p.totalSold ?? 0} sold</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )
-            }
-          </CardContent>
-        </Card>
-
-        {/* Recent Orders */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4 text-primary" /> Recent Orders
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentQuery.isLoading
-              ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg mb-2" />)
-              : recent.length === 0
-                ? <p className="text-sm text-muted-foreground text-center py-6">No orders yet</p>
-                : (
-                  <div className="space-y-3">
-                    {recent.map(o => (
-                      <div key={o.id} className="flex items-center gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{o.customerName}</p>
-                          <p className="text-xs text-muted-foreground">{o.orderNumber}</p>
-                        </div>
-                        <Badge className={`text-[10px] flex-shrink-0 ${statusColors[o.status] ?? ""}`}>
-                          {o.status}
-                        </Badge>
-                        <p className="text-sm font-bold flex-shrink-0">
-                          <span style={{ fontFamily: "system-ui" }}>₹</span>
-                          {Number(o.total).toLocaleString("en-IN")}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )
-            }
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Tracking Events Reference ── */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Eye className="h-4 w-4 text-primary" /> Tracked Events Reference
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {[
-              { event: "page_view",        tool: "GA4",     desc: "Every page navigation" },
-              { event: "view_item",        tool: "GA4",     desc: "Product detail viewed" },
-              { event: "add_to_cart",      tool: "GA4",     desc: "Item added to cart" },
-              { event: "remove_from_cart", tool: "GA4",     desc: "Item removed from cart" },
-              { event: "add_to_wishlist",  tool: "GA4",     desc: "Item wishlisted" },
-              { event: "begin_checkout",   tool: "GA4",     desc: "Checkout page opened" },
-              { event: "purchase",         tool: "GA4",     desc: "Order placed successfully" },
-              { event: "select_promotion", tool: "GA4",     desc: "Coupon applied" },
-              { event: "Session Replay",   tool: "Clarity", desc: "Full session recording" },
-              { event: "Heatmaps",         tool: "Clarity", desc: "Click & scroll heatmaps" },
-              { event: "Rage Clicks",      tool: "Clarity", desc: "Frustrated click detection" },
-              { event: "Dead Clicks",      tool: "Clarity", desc: "Clicks on non-interactive elements" },
-            ].map(({ event, tool, desc }) => (
-              <div key={event} className="flex items-start gap-2 p-3 bg-muted/40 rounded-lg">
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5 ${
-                  tool === "GA4" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"
-                }`}>
-                  {tool}
-                </span>
-                <div>
-                  <p className="text-xs font-mono font-semibold">{event}</p>
-                  <p className="text-[11px] text-muted-foreground">{desc}</p>
-                </div>
-              </div>
+      <DashboardCard
+        title="Revenue & orders" subtitle={`${r.from} → ${r.to}`}
+        action={
+          <div className="inline-flex rounded-lg border border-neutral-200 p-0.5" role="group" aria-label="Group by">
+            {(["day", "week", "month"] as const).map((g) => (
+              <button key={g} onClick={() => setGroup(g)} aria-pressed={group === g}
+                className={`h-8 px-3 text-xs font-medium rounded-md capitalize ${group === g ? "bg-emerald-800 text-white" : "text-neutral-600 hover:bg-neutral-100"}`}>{g}</button>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        }
+      >
+        {trend.isError ? <ErrorState onRetry={() => trend.refetch()} /> : trend.isLoading ? <LoadingSkeleton rows={4} /> :
+          !trend.data?.some((d) => d.revenue > 0) ? <EmptyState title="No sales in this period" description="Try a wider date range." compact /> : (
+            <div className="h-64 sm:h-72" role="img" aria-label="Revenue over time chart">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trend.data} margin={{ left: -10, right: 8, top: 8 }}>
+                  <defs><linearGradient id="rev" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={T.brand} stopOpacity={0.25} /><stop offset="100%" stopColor={T.brand} stopOpacity={0} /></linearGradient></defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d: string) => d.slice(5)} minTickGap={24} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => compactInr(v)} width={56} />
+                  <Tooltip formatter={(v: number, n: string) => (n === "revenue" ? inr(v) : v)} labelFormatter={(l) => `Date: ${l}`} />
+                  <Area type="monotone" dataKey="revenue" stroke={T.brand} strokeWidth={2} fill="url(#rev)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+      </DashboardCard>
 
+      <div className="grid lg:grid-cols-2 gap-4">
+        <DashboardCard title="Payment methods" subtitle="Share of revenue">
+          {overview.isLoading ? <LoadingSkeleton rows={3} /> : !o?.paymentMix.length ? <EmptyState title="No data" compact /> : (
+            <div className="h-60" role="img" aria-label="Payment method share">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={o.paymentMix.map((p) => ({ name: METHOD[p.method] ?? p.method, value: p.revenue }))} dataKey="value" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                    {o.paymentMix.map((_, i) => <Cell key={i} fill={T.chart[i % T.chart.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: number) => inr(v)} /><Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </DashboardCard>
+        <DashboardCard title="Revenue by category" subtitle="Line totals, before coupon discounts">
+          {cats.isLoading ? <LoadingSkeleton rows={3} /> : !cats.data?.length ? <EmptyState title="No data" compact /> : (
+            <div className="h-60" role="img" aria-label="Revenue by category">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={cats.data} layout="vertical" margin={{ left: 8, right: 16 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v: number) => compactInr(v)} />
+                  <YAxis type="category" dataKey="categoryName" tick={{ fontSize: 11 }} width={96} />
+                  <Tooltip formatter={(v: number) => inr(v)} />
+                  <Bar dataKey="revenue" fill={T.brand} radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </DashboardCard>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        <DashboardCard title="Best sellers" subtitle="By units sold" className="lg:col-span-2">
+          {top.isError ? <ErrorState onRetry={() => top.refetch()} /> : (
+            <DataTable<TopProduct> loading={top.isLoading} rows={top.data ?? []} rowKey={(p) => p.id}
+              empty={<EmptyState title="No sales yet" description="Best sellers appear once orders come in." compact />}
+              columns={[
+                { key: "name", header: "Product", primary: true, cell: (p) => <span className="line-clamp-1">{p.name}</span> },
+                { key: "units", header: "Units", cell: (p) => `${p.units} sold` },
+                { key: "revenue", header: "Revenue", align: "right", cell: (p) => inr(p.revenue) },
+              ]} />
+          )}
+        </DashboardCard>
+        <DashboardCard title="Order status" subtitle="All orders placed in range">
+          {!o?.statusBreakdown.length ? <EmptyState title="No orders" compact /> : (
+            <ul className="space-y-2">
+              {o.statusBreakdown.map((s) => (
+                <li key={s.status} className="flex items-center justify-between text-sm">
+                  <span className="capitalize text-neutral-700">{s.status}</span>
+                  <span className="font-semibold tabular-nums">{s.count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DashboardCard>
+      </div>
     </div>
   );
 }

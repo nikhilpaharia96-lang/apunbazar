@@ -11,7 +11,7 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
-import { getAuthHeaders } from "@/lib/admin-auth";
+import { getBestAuthToken } from "@/lib/api";
 import { loadActivities } from "@/lib/staff-auth";
 import {
   PageHeader, StatCard, DashboardCard, DataTable, EmptyState, ErrorState, LoadingSkeleton,
@@ -29,7 +29,7 @@ function useRevenueTrend(days: number) {
   return useQuery<TrendPoint[]>({
     queryKey: ["admin", "revenue-trend", days],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/revenue-trend?days=${days}`, { headers: { ...getAuthHeaders() } });
+      const res = await fetch(`/api/admin/revenue-trend?days=${days}`, { headers: { Authorization: `Bearer ${getBestAuthToken() ?? ""}` } });
       if (!res.ok) throw new Error("Failed to load revenue trend");
       const d = await res.json();
       return Array.isArray(d) ? d : [];

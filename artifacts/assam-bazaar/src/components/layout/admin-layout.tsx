@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import {
   Menu, X, LayoutDashboard, Package, ShoppingBag, Tag, ArrowLeft, LogOut, Settings, BarChart3,
   Ticket, Shield, SlidersHorizontal, Image, Layout, Users, FileText, UserRound, Megaphone, Truck,
-  Headphones, KeyRound, ScrollText, PanelLeftClose, PanelLeftOpen, ExternalLink,
+  Headphones, KeyRound, ScrollText, PanelLeftClose, PanelLeftOpen, ExternalLink, Boxes, CreditCard,
 } from "lucide-react";
 import { adminLogout, getAdminEmail, isAdminLoggedIn } from "@/lib/admin-auth";
 import { getStaffSession, hasPermission, staffLogout, ROLE_LABELS, type Permission } from "@/lib/staff-auth";
@@ -26,13 +26,15 @@ const NAV_GROUPS: NavGroup[] = [
   { title: "Overview", items: [
     { href: "/admin",           label: "Dashboard", icon: LayoutDashboard, exact: true, permission: "dashboard" },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3, permission: "analytics" },
-    { href: "/admin/reports",   label: "Reports",   icon: FileText,  permission: "reports", soon: true },
+    { href: "/admin/reports",   label: "Reports",   icon: FileText,  permission: "reports" },
+    { href: "/admin/payments",  label: "Payments",  icon: CreditCard, permission: "orders" },
   ]},
   { title: "Store Management", items: [
     { href: "/admin/products",   label: "Products",   icon: Package,     permission: "products" },
+    { href: "/admin/inventory",  label: "Inventory",  icon: Boxes,       permission: "products" },
     { href: "/admin/categories", label: "Categories", icon: Tag,         permission: "categories" },
     { href: "/admin/orders",     label: "Orders",     icon: ShoppingBag, permission: "orders" },
-    { href: "/admin/customers",  label: "Customers",  icon: UserRound,   permission: "orders", soon: true },
+    { href: "/admin/customers",  label: "Customers",  icon: UserRound,   permission: "orders" },
     { href: "/admin/coupons",    label: "Coupons",    icon: Ticket,      permission: "coupons" },
   ]},
   { title: "Store Customization", items: [

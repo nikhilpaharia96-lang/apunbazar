@@ -174,7 +174,7 @@ const SK = {
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 // Staff ab database mein save hota hai (har device se login chalega)
-const API_URL = import.meta.env.VITE_API_URL || "https://apunbazar.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 function authHeaders(): Record<string, string> {
   if (isAdminLoggedIn()) return getAuthHeaders();
