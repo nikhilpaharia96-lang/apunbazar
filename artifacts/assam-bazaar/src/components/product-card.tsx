@@ -112,7 +112,7 @@ export default function ProductCard({ product }: { product: Product }) {
           {/* Badges */}
           {discount && discount > 0 && (
             <div className="absolute top-2 left-2 z-20">
-              <Badge className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 shadow-sm">-{discount}%</Badge>
+              <Badge className="bg-red-700 text-white text-[10px] font-bold px-2 py-0.5 shadow-sm">-{discount}%</Badge>
             </div>
           )}
           {product.featured && !discount && (
@@ -134,7 +134,7 @@ export default function ProductCard({ product }: { product: Product }) {
             onClick={handleAddToWishlist}
             aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
             className="absolute bottom-2 right-2 z-20 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm border border-orange-100 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform shadow-sm"
-            style={{ color: wishlisted ? "#ef4444" : "#c17b3e" }}
+            style={{ color: wishlisted ? "#ef4444" : "#774813" }}
           >
             <Heart size={14} fill={wishlisted ? "currentColor" : "none"} />
           </button>
@@ -142,22 +142,22 @@ export default function ProductCard({ product }: { product: Product }) {
 
         {/* Body */}
         <div className="flex flex-col gap-1 p-3 flex-1">
-          <p className="text-[10px] font-bold tracking-widest uppercase text-[#c17b3e] truncate">
+          <p className="text-[10px] font-bold tracking-widest uppercase text-[#774813] truncate">
             {product.categoryName}
           </p>
           <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2">{product.name}</h3>
           {product.artisan && (
-            <p className="text-xs text-gray-400 truncate">by {product.artisan}</p>
+            <p className="text-xs text-gray-600 truncate">by {product.artisan}</p>
           )}
 
           {product.rating > 0 && (
             <div className="flex items-center gap-0.5 mt-0.5">
               {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} size={11} fill={s <= Math.round(product.rating) ? "#c17b3e" : "none"} stroke="#c17b3e" />
+                <Star key={s} size={11} fill={s <= Math.round(product.rating) ? "#774813" : "none"} stroke="#774813" />
               ))}
-              <span className="text-[11px] font-semibold text-[#c17b3e] ml-1">{Number(product.rating).toFixed(1)}</span>
+              <span className="text-[11px] font-semibold text-[#774813] ml-1">{Number(product.rating).toFixed(1)}</span>
               {product.reviewCount > 0 && (
-                <span className="text-[11px] text-gray-400 ml-0.5">({product.reviewCount})</span>
+                <span className="text-[11px] text-gray-600 ml-0.5">({product.reviewCount})</span>
               )}
             </div>
           )}
@@ -168,7 +168,7 @@ export default function ProductCard({ product }: { product: Product }) {
                 ₹{Number(product.price).toLocaleString("en-IN")}
               </span>
               {product.originalPrice && product.originalPrice > product.price && (
-                <span className="text-xs text-gray-400 line-through">
+                <span className="text-xs text-gray-600 line-through">
                   ₹{Number(product.originalPrice).toLocaleString("en-IN")}
                 </span>
               )}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSEO } from "@/hooks/use-seo";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Order } from "@workspace/api-client-react";
@@ -18,6 +19,7 @@ const statusColors: Record<string, { bg: string; text: string; dot: string }> = 
 };
 
 export default function Orders() {
+  useSEO({ title: "Track Your Orders", noindex: true });
   const [email, setEmail] = useState<string>(() => {
     try { return localStorage.getItem("apunbazar_last_email") ?? ""; } catch { return ""; }
   });
@@ -63,12 +65,12 @@ export default function Orders() {
           </div>
           <h1 className="font-serif text-2xl font-bold text-gray-900">Track Your Orders</h1>
         </div>
-        <p className="text-gray-500 text-sm mb-6 ml-14">Enter the email and mobile number used at checkout</p>
+        <p className="text-gray-600 text-sm mb-6 ml-14">Enter the email and mobile number used at checkout</p>
 
         {/* Search */}
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600" />
             <input
               type="email" required
               placeholder="Enter your email address"
@@ -79,7 +81,7 @@ export default function Orders() {
             />
           </div>
           <div className="relative flex-1">
-            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600" />
             <input
               type="tel" inputMode="numeric" required
               placeholder="Mobile number"
@@ -104,7 +106,7 @@ export default function Orders() {
               <Package className="h-16 w-16" style={{ color: "#1a5a32", opacity: 0.4 }} />
             </div>
             <h3 className="font-serif text-lg font-bold text-gray-800 mb-2">Enter your email and mobile to find your orders</h3>
-            <p className="text-gray-500 text-sm mb-8">Both are needed to keep your<br />order details private.</p>
+            <p className="text-gray-600 text-sm mb-8">Both are needed to keep your<br />order details private.</p>
 
             {/* Feature cards */}
             <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
@@ -119,7 +121,7 @@ export default function Orders() {
                     <Icon className="h-5 w-5" style={{ color: "#1a5a32" }} />
                   </div>
                   <p style={{ fontWeight: 700, fontSize: 11, color: "#222", lineHeight: 1.2 }}>{label}</p>
-                  <p style={{ fontSize: 10, color: "#888", lineHeight: 1.4, whiteSpace: "pre-line" }}>{sub}</p>
+                  <p style={{ fontSize: 10, color: "#4b5563", lineHeight: 1.4, whiteSpace: "pre-line" }}>{sub}</p>
                 </div>
               ))}
             </div>
@@ -132,7 +134,7 @@ export default function Orders() {
                 </div>
                 <div style={{ textAlign: "left" }}>
                   <p style={{ fontWeight: 700, fontSize: 13, color: "#222" }}>Need help?</p>
-                  <p style={{ fontSize: 11, color: "#888" }}>Contact our support team for any assistance.</p>
+                  <p style={{ fontSize: 11, color: "#4b5563" }}>Contact our support team for any assistance.</p>
                 </div>
               </div>
               <a href="https://wa.me/91XXXXXXXXXX" target="_blank" rel="noreferrer"
@@ -145,13 +147,13 @@ export default function Orders() {
         ) : error ? (
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, textAlign: "center" }}>
             <p className="font-semibold text-gray-700">Could not look up orders</p>
-            <p className="text-sm text-gray-400 mt-1">{(error as { data?: { error?: string } }).data?.error ?? "Please try again in a moment."}</p>
+            <p className="text-sm text-gray-600 mt-1">{(error as { data?: { error?: string } }).data?.error ?? "Please try again in a moment."}</p>
           </div>
         ) : data?.orders.length === 0 ? (
           <div style={{ background: "#fff", borderRadius: 20, padding: 40, textAlign: "center" }}>
             <Package className="h-12 w-12 mx-auto mb-4 opacity-20" style={{ color: "#1a5a32" }} />
             <p className="font-semibold text-gray-700 mb-1">No orders found</p>
-            <p className="text-sm text-gray-400 mb-5">No orders match {searchEmail} with that mobile number</p>
+            <p className="text-sm text-gray-600 mb-5">No orders match {searchEmail} with that mobile number</p>
             <Link href="/products">
               <button style={{ background: "#1a5a32", color: "#fff", border: "none", borderRadius: 12, padding: "12px 28px", fontWeight: 700, cursor: "pointer" }}>
                 Start Shopping
@@ -169,7 +171,7 @@ export default function Orders() {
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div>
                         <p className="font-bold text-base text-gray-900">{order.orderNumber}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
+                        <p className="text-xs text-gray-600 mt-0.5">
                           {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
                         </p>
                       </div>
@@ -183,7 +185,7 @@ export default function Orders() {
                         </div>
                       </div>
                     </div>
-                    <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 10, display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, color: "#888" }}>
+                    <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 10, display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, color: "#4b5563" }}>
                       <span>{items.length} item{items.length !== 1 ? "s" : ""}</span>
                       <span>•</span>
                       <span>{order.paymentMethod === "cod" ? "Cash on Delivery" : "Online Payment"}</span>

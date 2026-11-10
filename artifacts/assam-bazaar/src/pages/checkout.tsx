@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import { useSEO } from "@/hooks/use-seo";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +23,7 @@ import { trackPurchase, trackBeginCheckout, trackCouponApplied } from "@/lib/ana
 import { useQuery } from "@tanstack/react-query";
 import { fetchShippingConfig, DEFAULT_SHIPPING } from "@/lib/shipping-config";
 import { apiFetch } from "@/lib/api";
+import { useCustomer } from "@/lib/customer-auth";
 import { openRazorpayCheckout, loadRazorpayScript, type GatewayParams } from "@/lib/razorpay";
 
 // Server-validated coupon preview. The amount actually charged is recomputed by the server.
@@ -49,12 +51,42 @@ function TrustBadge({ icon: Icon, title, sub }: { icon: any; title: string; sub:
         <Icon className="h-5 w-5" style={{ color: "#1a5c2a" }} />
       </div>
       <p className="text-xs font-semibold text-gray-800">{title}</p>
-      <p className="text-[10px] text-gray-500 leading-tight">{sub}</p>
+      <p className="text-[10px] text-gray-600 leading-tight">{sub}</p>
     </div>
   );
 }
 
+// ── Form input component ───────────────────────────────────────────────────
+// IMPORTANT: this lives at module scope. Defining it inside CheckoutPage gave it a new identity on
+// every render, so React remounted the <input> after each keystroke and focus was lost (only the
+// first character could be typed).
+function FieldInput({ control, name, label, placeholder, type = "text", icon, inputMode, autoComplete }: any) {
+  return (
+    <FormField control={control} name={name} render={({ field }) => (
+      <FormItem>
+        <FormLabel className="text-sm font-semibold text-gray-700">{label}</FormLabel>
+        <FormControl>
+          <div className="relative">
+            {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600">{icon}</span>}
+            <Input
+              type={type}
+              inputMode={inputMode}
+              autoComplete={autoComplete}
+              placeholder={placeholder}
+              // 16px on phones: anything smaller makes iOS Safari zoom the page when the field is focused
+              className={`h-12 rounded-xl border-gray-200 focus:border-primary text-[16px] md:text-sm ${icon ? "pl-9" : ""}`}
+              {...field}
+            />
+          </div>
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )} />
+  );
+}
+
 export default function Checkout() {
+  useSEO({ title: "Checkout", noindex: true });
   const [, navigate]     = useLocation();
   const { cart }         = useCart();
   const { sessionId }    = useSession();
@@ -83,6 +115,24 @@ export default function Checkout() {
       shippingPincode: "", paymentMethod: "cod", notes: "",
     },
   });
+
+  // Logged-in customers get their saved details filled in (guests are unaffected)
+  const account = useCustomer();
+  useEffect(() => {
+    if (!account) return;
+    const cur = form.getValues();
+    form.reset({
+      ...cur,
+      customerName: cur.customerName || account.name,
+      customerEmail: account.email,
+      customerPhone: cur.customerPhone || account.phone,
+      shippingAddress: cur.shippingAddress || account.address || "",
+      shippingCity: cur.shippingCity || account.city || "",
+      shippingState: cur.shippingState && cur.shippingState !== "Assam" ? cur.shippingState : account.state || "Assam",
+      shippingPincode: cur.shippingPincode || account.pincode || "",
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account?.id]);
 
   const paymentMethod = form.watch("paymentMethod");
   const cartTotal     = cart?.total ?? 0;
@@ -120,7 +170,7 @@ export default function Checkout() {
 
   function finishOrder(order: { id: number; orderNumber?: string }, values: CheckoutForm) {
     invalidateCart();
-    try { localStorage.setItem("apunbazar_last_email", values.customerEmail); } catch {}
+    try { localStorage.setItem("apunbazar_last_email", values.customerEmail); localStorage.setItem("apunbazar_last_phone", values.customerPhone); } catch {}
     trackPurchase(
       order.orderNumber ?? String(order.id),
       cartItems.map(i => ({
@@ -223,27 +273,6 @@ export default function Checkout() {
     );
   }
 
-  // ── Form input component ───────────────────────────────────────────────────
-  const FieldInput = ({ name, label, placeholder, type = "text", icon }: any) => (
-    <FormField control={form.control} name={name} render={({ field }) => (
-      <FormItem>
-        <FormLabel className="text-sm font-semibold text-gray-700">{label}</FormLabel>
-        <FormControl>
-          <div className="relative">
-            {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</span>}
-            <Input
-              type={type}
-              placeholder={placeholder}
-              className={`h-12 rounded-xl border-gray-200 focus:border-primary ${icon ? "pl-9" : ""}`}
-              {...field}
-            />
-          </div>
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )} />
-  );
-
   return (
     <div className="page-enter min-h-screen" style={{ background: "#f8f9fa" }}>
       <div className="container mx-auto px-4 py-6 max-w-4xl">
@@ -269,10 +298,10 @@ export default function Checkout() {
                     <h2 className="font-semibold text-base">Contact Information</h2>
                   </div>
                   <div className="space-y-4">
-                    <FieldInput name="customerName"  label="Full Name"     placeholder="Aapka naam" />
+                    <FieldInput control={form.control} name="customerName"  label="Full Name"     placeholder="Aapka naam" autoComplete="name" />
                     <div className="grid grid-cols-2 gap-3">
-                      <FieldInput name="customerPhone" label="Phone Number"  placeholder="10-digit number" />
-                      <FieldInput name="customerEmail" label="Email Address" placeholder="you@example.com" type="email" />
+                      <FieldInput control={form.control} name="customerPhone" label="Phone Number"  placeholder="10-digit number" type="tel" inputMode="numeric" autoComplete="tel-national" />
+                      <FieldInput control={form.control} name="customerEmail" label="Email Address" placeholder="you@example.com" type="email" inputMode="email" autoComplete="email" />
                     </div>
                   </div>
                 </div>
@@ -291,21 +320,22 @@ export default function Checkout() {
                       <FormItem>
                         <FormLabel className="text-sm font-semibold text-gray-700">Street Address</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="House no., street, locality" rows={2}
-                            className="rounded-xl border-gray-200 focus:border-primary resize-none" {...field} />
+                          <Textarea placeholder="House no., street, locality" rows={2} autoComplete="street-address"
+                            className="rounded-xl border-gray-200 focus:border-primary resize-none text-[16px] md:text-sm" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <div className="grid grid-cols-3 gap-3">
-                      <FieldInput name="shippingCity"    label="City"    placeholder="City" />
+                      <FieldInput control={form.control} name="shippingCity"    label="City"    placeholder="City" autoComplete="address-level2" />
                       <FormField control={form.control} name="shippingState" render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-semibold text-gray-700">State</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <select
-                                className="w-full h-12 rounded-xl border border-gray-200 px-3 text-sm bg-white focus:outline-none focus:border-primary appearance-none"
+                                autoComplete="address-level1"
+                                className="w-full h-12 rounded-xl border border-gray-200 px-3 text-[16px] md:text-sm bg-white focus:outline-none focus:border-primary appearance-none"
                                 value={field.value}
                                 onChange={e => field.onChange(e.target.value)}
                               >
@@ -315,13 +345,13 @@ export default function Checkout() {
                                   <option key={s} value={s}>{s}</option>
                                 ))}
                               </select>
-                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none" />
                             </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )} />
-                      <FieldInput name="shippingPincode" label="Pincode" placeholder="6-digit" />
+                      <FieldInput control={form.control} name="shippingPincode" label="Pincode" placeholder="6-digit" inputMode="numeric" autoComplete="postal-code" />
                     </div>
                   </div>
                 </div>
@@ -346,7 +376,7 @@ export default function Checkout() {
                             </div>
                             <div className="flex-1">
                               <p className="font-semibold text-sm">Cash on Delivery</p>
-                              <p className="text-xs text-gray-500">Pay when you receive your order</p>
+                              <p className="text-xs text-gray-600">Pay when you receive your order</p>
                             </div>
                             {shippingConfig.codEnabled && (
                               <span className="text-xs font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-lg flex-shrink-0">
@@ -367,7 +397,7 @@ export default function Checkout() {
                                 <p className="font-semibold text-sm">Pay Online</p>
                                 <span className="text-[10px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded">Razorpay</span>
                               </div>
-                              <p className="text-xs text-gray-500">UPI · Card · Net Banking · Wallet</p>
+                              <p className="text-xs text-gray-600">UPI · Card · Net Banking · Wallet</p>
                             </div>
                             <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg flex-shrink-0">
                               No extra charges
@@ -383,9 +413,9 @@ export default function Checkout() {
                   <div className="mt-4">
                     <FormField control={form.control} name="notes" render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-gray-700">Order Notes <span className="font-normal text-gray-400">(Optional)</span></FormLabel>
+                        <FormLabel className="text-sm font-semibold text-gray-700">Order Notes <span className="font-normal text-gray-600">(Optional)</span></FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Any special instructions..." rows={2}
+                          <Textarea placeholder="Any special instructions..." rows={2} style={{ fontSize: 16 }}
                             className="rounded-xl border-gray-200 resize-none" {...field} />
                         </FormControl>
                       </FormItem>
@@ -442,7 +472,7 @@ export default function Checkout() {
                               <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-sm leading-tight line-clamp-1">{item.product?.name}</p>
                                 {(item.product as any)?.artisan && (
-                                  <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                                  <p className="text-xs text-gray-600 mt-0.5 flex items-center gap-1">
                                     <Leaf className="h-2.5 w-2.5" style={{ color: "#1a5c2a" }} />
                                     {(item.product as any).artisan}
                                   </p>
@@ -450,7 +480,7 @@ export default function Checkout() {
                               </div>
                               <div className="text-right flex-shrink-0">
                                 <p className="font-bold text-sm">₹{(price * item.quantity).toLocaleString("en-IN")}</p>
-                                {orig && <p className="text-xs line-through text-gray-400">₹{(orig * item.quantity).toLocaleString("en-IN")}</p>}
+                                {orig && <p className="text-xs line-through text-gray-600">₹{(orig * item.quantity).toLocaleString("en-IN")}</p>}
                               </div>
                             </div>
                             <div className="flex items-center gap-2 mt-1.5">
@@ -476,7 +506,7 @@ export default function Checkout() {
                     <button
                       type="button"
                       onClick={() => setCouponOpen(!couponOpen)}
-                      className="w-full flex items-center justify-between text-sm font-semibold text-primary py-1"
+                      className="w-full min-h-[44px] flex items-center justify-between text-sm font-semibold text-primary py-1"
                     >
                       <span className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center"
@@ -498,7 +528,7 @@ export default function Checkout() {
                               <p className="text-xs" style={{ color: "#1a5c2a" }}>Saving ₹{discount}!</p>
                             </div>
                             <button type="button" onClick={() => { setApplied(null); setCouponInput(""); setCouponError(""); }}
-                              className="text-gray-400 hover:text-destructive">
+                              className="text-gray-600 hover:text-destructive">
                               <X className="h-4 w-4" />
                             </button>
                           </div>
@@ -511,7 +541,7 @@ export default function Checkout() {
                                 onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); }}
                                 onKeyDown={e => e.key === "Enter" && (e.preventDefault(), applyCoupon())}
                                 placeholder="Enter coupon code"
-                                className="flex-1 h-11 rounded-xl border border-gray-200 px-3 text-sm font-mono uppercase focus:outline-none focus:border-primary"
+                                className="flex-1 h-11 rounded-xl border border-gray-200 px-3 text-[16px] md:text-sm font-mono uppercase focus:outline-none focus:border-primary"
                               />
                               <button
                                 type="button"
@@ -604,7 +634,7 @@ export default function Checkout() {
                 <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 lg:sticky lg:top-4">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <p className="text-xs text-gray-500">Total Amount</p>
+                      <p className="text-xs text-gray-600">Total Amount</p>
                       <p className="font-bold text-xl" style={{ color: "#1a5c2a" }}>
                         ₹{grandTotal.toLocaleString("en-IN")}
                       </p>
@@ -629,7 +659,7 @@ export default function Checkout() {
                       }
                     </Button>
                   </div>
-                  <p className="text-center text-xs text-gray-400 flex items-center justify-center gap-1">
+                  <p className="text-center text-xs text-gray-600 flex items-center justify-center gap-1">
                     <ShieldCheck className="h-3 w-3" /> Safe & Secure Transactions
                   </p>
                 </div>

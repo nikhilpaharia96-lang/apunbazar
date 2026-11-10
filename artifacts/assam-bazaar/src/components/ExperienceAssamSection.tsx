@@ -128,7 +128,7 @@ export default function ExperienceAssamSection() {
               {playing ? "Now Playing" : "Watch Our Story"}
             </button>
 
-            <p style={{ marginTop:10, fontSize:11, color:"#9ca3af", display:"flex", alignItems:"center", gap:5 }}>
+            <p style={{ marginTop:10, fontSize:11, color:"#4b5563", display:"flex", alignItems:"center", gap:5 }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill={GOLD}><path d="M8 5v14l11-7z"/></svg>
               {STORY_VIDEOS.length} videos available
             </p>
@@ -194,7 +194,7 @@ export default function ExperienceAssamSection() {
               <div style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 12px", background:"#fff", borderRadius:"0 0 14px 14px", borderTop:"1px solid #eee" }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill={G}><path d="M8 5v14l11-7z"/></svg>
                 <div style={{ flex:1, height:3, background:"#e5e7eb", borderRadius:2 }} />
-                <span style={{ fontSize:10, color:"#9ca3af", whiteSpace:"nowrap" }}>Click to play</span>
+                <span style={{ fontSize:10, color:"#4b5563", whiteSpace:"nowrap" }}>Click to play</span>
               </div>
             )}
           </div>

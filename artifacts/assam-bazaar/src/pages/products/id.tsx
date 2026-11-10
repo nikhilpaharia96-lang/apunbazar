@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { useSEO } from "@/hooks/use-seo";
+import { imgProps } from "@/lib/img";
 import { useParams, useLocation } from "wouter";
 import { Link } from "wouter";
 import {
@@ -140,7 +142,7 @@ function TrustBar() {
             }
           </div>
           <p style={{ fontSize: 9.5, fontWeight: 800, color: "#282c3f", margin: 0, fontFamily: "'Nunito',sans-serif", lineHeight: 1.3 }}>{it.label}</p>
-          <p style={{ fontSize: 9, color: "#94969f", margin: 0, fontFamily: "'Nunito',sans-serif" }}>{it.sub}</p>
+          <p style={{ fontSize: 9, color: "#4b5563", margin: 0, fontFamily: "'Nunito',sans-serif" }}>{it.sub}</p>
         </div>
       ))}
     </div>
@@ -148,7 +150,7 @@ function TrustBar() {
 }
 
 // ─── SPOTLIGHTS SECTION ──────────────────────────────────────────────────────
-const SPOTLIGHTS = [
+const SPOTLIGHTS_ALL = [
   { title: "Meet Our Artisans",        duration: "2:34", thumb: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80", reelUrl: "" },
   { title: "Handloom Weaving Process", duration: "3:12", thumb: "https://images.unsplash.com/photo-1590439471364-192aa70c0b53?w=400&q=80", reelUrl: "" },
   { title: "Story Behind the Gamusa",  duration: "1:58", thumb: "https://images.unsplash.com/photo-1601379760883-1bb497c558e0?w=400&q=80", reelUrl: "" },
@@ -156,6 +158,9 @@ const SPOTLIGHTS = [
   { title: "Tea Garden Journey",       duration: "2:47", thumb: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=400&q=80", reelUrl: "" },
   { title: "Assam Craft Heritage",     duration: "3:29", thumb: "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=400&q=80", reelUrl: "" },
 ];
+
+// Only spotlights with a real video URL are shown — never placeholder cards
+const SPOTLIGHTS = SPOTLIGHTS_ALL.filter((sp) => sp.reelUrl.trim() !== "");
 
 // Convert Instagram reel URL → embed URL
 // e.g. https://www.instagram.com/reel/ABC123/ → https://www.instagram.com/reel/ABC123/embed/
@@ -369,19 +374,19 @@ function YouMightAlsoLike({ products, onNavigate }: { products: any[]; onNavigat
   return (
     <div style={{ background: "#fff", borderTop: "8px solid #f5f5f6", padding: "20px 0" }}>
       <div style={{ padding: "0 20px", marginBottom: 14 }}>
-        <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: "#94969f", letterSpacing: 1.2, textTransform: "uppercase", fontFamily: "'Nunito',sans-serif" }}>YOU MIGHT ALSO LIKE</p>
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: "#4b5563", letterSpacing: 1.2, textTransform: "uppercase", fontFamily: "'Nunito',sans-serif" }}>YOU MIGHT ALSO LIKE</p>
       </div>
-      <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "0 20px 4px", scrollbarWidth: "none" }}>
+      <div tabIndex={0} role="region" aria-label="Related products" style={{ display: "flex", gap: 12, overflowX: "auto", padding: "0 20px 4px", scrollbarWidth: "none" }}>
         {products.map(p => {
           const disc = p.originalPrice && Number(p.originalPrice) > Number(p.price) ? Math.round((1 - Number(p.price) / Number(p.originalPrice)) * 100) : 0;
           return (
             <div key={p.id} onClick={() => onNavigate(p.id)} style={{ flexShrink: 0, width: 140, cursor: "pointer" }}>
               <div style={{ position: "relative", borderRadius: 10, overflow: "hidden", marginBottom: 8, background: "#f5f5f6" }}>
                 <img src={p.imageUrl} alt={p.name} style={{ width: 140, height: 170, objectFit: "cover", display: "block" }} onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/140x170/f5f5f6/282c3f?text=${encodeURIComponent(p.name.slice(0, 4))}`; }} />
-                {disc >= 5 && <div style={{ position: "absolute", top: 8, left: 0, background: "#ff3f6c", color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 8px", fontFamily: "'Nunito',sans-serif" }}>SAVE {disc}%</div>}
+                {disc >= 5 && <div style={{ position: "absolute", top: 8, left: 0, background: "#c62048", color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 8px", fontFamily: "'Nunito',sans-serif" }}>SAVE {disc}%</div>}
               </div>
               <p style={{ fontSize: 12, fontWeight: 700, color: "#282c3f", margin: "0 0 3px", fontFamily: "'Nunito',sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
-              {p.originalPrice && <p style={{ fontSize: 10, color: "#94969f", textDecoration: "line-through", margin: "0 0 1px", fontFamily: "'Nunito',sans-serif" }}>₹{Number(p.originalPrice).toLocaleString("en-IN")}</p>}
+              {p.originalPrice && <p style={{ fontSize: 10, color: "#4b5563", textDecoration: "line-through", margin: "0 0 1px", fontFamily: "'Nunito',sans-serif" }}>₹{Number(p.originalPrice).toLocaleString("en-IN")}</p>}
               <p style={{ fontSize: 13, fontWeight: 800, color: "#282c3f", margin: 0, fontFamily: "'Nunito',sans-serif" }}>₹{Number(p.price).toLocaleString("en-IN")}</p>
             </div>
           );
@@ -597,7 +602,7 @@ function KasutamDetailTabs({ product }: { product: any }) {
                 borderBottom: i < arr.length - 1 ? "1px solid #f5f5f5" : "none",
                 background: i % 2 === 0 ? "#fff" : "#fafafa",
               }}>
-                <span style={{ width: 120, fontSize: 12, color: "#94969f", fontFamily: "'Nunito',sans-serif", fontWeight: 700, flexShrink: 0 }}>{k}</span>
+                <span style={{ width: 120, fontSize: 12, color: "#4b5563", fontFamily: "'Nunito',sans-serif", fontWeight: 700, flexShrink: 0 }}>{k}</span>
                 <span style={{ fontSize: 12, color: "#282c3f", fontFamily: "'Nunito',sans-serif", fontWeight: 800 }}>{v}</span>
               </div>
             ))}
@@ -709,10 +714,29 @@ export default function ProductDetail() {
     } catch {}
   }, [product?.id]);
 
-  useEffect(() => {
-    if (!product) return;
-    document.title = `${product.name} | ApunBazar`;
-  }, [product]);
+  useSEO({
+    title: product?.name ?? "Product",
+    description: product?.description ?? "Authentic Assamese product from ApunBazar.",
+    image: product?.imageUrl,
+    type: "product",
+    jsonLd: product ? {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.name,
+      description: product.description,
+      image: [product.imageUrl, ...((product as { images?: string[] }).images ?? [])].filter(Boolean).map((u) => (u.startsWith("http") ? u : `${window.location.origin}${u}`)),
+      sku: String(product.id),
+      brand: { "@type": "Brand", name: "ApunBazar" },
+      offers: {
+        "@type": "Offer",
+        url: `${window.location.origin}/products/${product.id}`,
+        priceCurrency: "INR",
+        price: String(product.price),
+        availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        itemCondition: "https://schema.org/NewCondition",
+      },
+    } : undefined,
+  });
 
   return (
     <>
@@ -723,7 +747,7 @@ export default function ProductDetail() {
         .pdp-topbar { position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #f0ece4;display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:54px; }
         .pdp-back { display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#282c3f;font-family:'Nunito',sans-serif;background:none;border:none;cursor:pointer;padding:0; }
         .pdp-logo { font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#1a3a22; }
-        .pdp-logo span { color:${GOLD}; }
+        .pdp-logo span { color:#8a6a10; }
         .pdp-img-scroll { display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none; }
         .pdp-img-scroll::-webkit-scrollbar { display:none; }
         .pdp-img-slide { flex-shrink:0;width:100%;scroll-snap-align:start; }
@@ -741,8 +765,8 @@ export default function ProductDetail() {
         .pdp-price-row { display:flex;align-items:flex-start;justify-content:space-between;gap:10px; }
         .pdp-price-left { flex:1; }
         .pdp-price-main { font-size:34px;font-weight:900;color:#1a1a2e;font-family:'Nunito',sans-serif;line-height:1; }
-        .pdp-price-orig { font-size:17px;color:#94969f;text-decoration:line-through;font-family:'Nunito',sans-serif;margin-left:8px; }
-        .pdp-disc-badge { display:inline-block;background:#ff6b6b;color:#fff;font-size:13px;font-weight:900;padding:4px 10px;border-radius:6px;font-family:'Nunito',sans-serif;margin-left:6px; }
+        .pdp-price-orig { font-size:17px;color:#4b5563;text-decoration:line-through;font-family:'Nunito',sans-serif;margin-left:8px; }
+        .pdp-disc-badge { display:inline-block;background:#c62048;color:#fff;font-size:13px;font-weight:900;padding:4px 10px;border-radius:6px;font-family:'Nunito',sans-serif;margin-left:6px; }
         .pdp-save-line { font-size:14px;font-weight:800;color:${G};font-family:'Nunito',sans-serif;margin-top:6px; }
         .pdp-qty { display:flex;align-items:center;border:2px solid #e0e0e0;border-radius:8px;overflow:hidden;width:fit-content; }
         .pdp-qty-btn { width:44px;height:44px;background:#f5f5f6;border:none;font-size:20px;color:#282c3f;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;font-weight:700;transition:background .15s; }
@@ -754,9 +778,9 @@ export default function ProductDetail() {
         .pdp-btn-cart:hover { background:#f5f5f6; }
         .pdp-btn-buynow { height:52px;background:${GOLD};border:none;border-radius:10px;font-size:15px;font-weight:900;color:#1a1a2e;font-family:'Nunito',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 18px rgba(201,168,76,.4);transition:all .2s; }
         .pdp-btn-buynow:hover { transform:translateY(-1px); }
-        .pdp-btn-wa { height:52px;background:#25D366;border:none;border-radius:10px;font-size:15px;font-weight:800;color:#fff;font-family:'Nunito',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none; }
+        .pdp-btn-wa { height:52px;background:#0b7a3a;border:none;border-radius:10px;font-size:15px;font-weight:800;color:#fff;font-family:'Nunito',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none; }
         .pdp-tabs { display:flex;background:#fff;border-bottom:2px solid #f0f0f0;position:sticky;top:54px;z-index:40; }
-        .pdp-tab { flex:1;padding:14px 0;text-align:center;font-size:12.5px;font-weight:800;font-family:'Nunito',sans-serif;color:#94969f;cursor:pointer;border:none;background:none;position:relative;letter-spacing:.4px; }
+        .pdp-tab { flex:1;padding:14px 0;text-align:center;font-size:12.5px;font-weight:800;font-family:'Nunito',sans-serif;color:#4b5563;cursor:pointer;border:none;background:none;position:relative;letter-spacing:.4px; }
         .pdp-tab.active { color:#1a1a2e; }
         .pdp-tab.active::after { content:'';position:absolute;bottom:-2px;left:15%;right:15%;height:3px;background:${G};border-radius:2px; }
         .pdp-dot { height:6px;border-radius:3px;cursor:pointer;border:none;padding:0;transition:all .3s; }
@@ -766,13 +790,13 @@ export default function ProductDetail() {
 
       {/* ── TOP BAR ── */}
       <div className="pdp-topbar">
-        <button className="pdp-back" onClick={() => navigate("/products")}>
+        <button className="pdp-back" aria-label="Back to products" onClick={() => navigate("/products")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
         </button>
         <span className="pdp-logo">Apun<span>Bazar</span></span>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           {product && <ShareButtons productName={product.name} price={product.price} />}
-          <Link href="/cart" style={{ position: "relative", color: "#282c3f" }}>
+          <Link href="/cart" aria-label="View cart" style={{ position: "relative", color: "#282c3f" }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
               <path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.66a2 2 0 001.98-1.71L23 6H6"/>
@@ -796,28 +820,28 @@ export default function ProductDetail() {
           {/* ── IMAGE GALLERY ── */}
           <div style={{ position: "relative", background: "#f8f6f0" }}>
             {discount >= 5 && (
-              <div style={{ position: "absolute", top: 0, left: 0, zIndex: 5, background: "#ff3f6c", color: "#fff", fontSize: 11, fontWeight: 900, padding: "5px 14px", fontFamily: "'Nunito',sans-serif" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, zIndex: 5, background: "#c62048", color: "#fff", fontSize: 11, fontWeight: 900, padding: "5px 14px", fontFamily: "'Nunito',sans-serif" }}>
                 SAVE {discount}%
               </div>
             )}
-            <button onClick={handleAddToWishlist} style={{ position: "absolute", top: 12, right: 12, zIndex: 5, width: 40, height: 40, borderRadius: "50%", background: "#fff", border: "1px solid #eee", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 20, boxShadow: "0 2px 8px rgba(0,0,0,.12)" }}>
+            <button onClick={handleAddToWishlist} aria-label="Add to wishlist" style={{ position: "absolute", top: 12, right: 12, zIndex: 5, width: 40, height: 40, borderRadius: "50%", background: "#fff", border: "1px solid #eee", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 20, boxShadow: "0 2px 8px rgba(0,0,0,.12)" }}>
               {isInWishlist ? "❤️" : "🤍"}
             </button>
-            <div ref={imgScrollRef} className="pdp-img-scroll" onScroll={e => { const el = e.currentTarget; setCurrentSlide(Math.round(el.scrollLeft / el.offsetWidth)); }}>
+            <div ref={imgScrollRef} className="pdp-img-scroll" tabIndex={0} role="region" aria-label="Product photos" onScroll={e => { const el = e.currentTarget; setCurrentSlide(Math.round(el.scrollLeft / el.offsetWidth)); }}>
               {images.length > 0 ? images.map((img, i) => (
                 <div key={i} className="pdp-img-slide">
-                  <img src={img} alt={`${product.name} ${i + 1}`} className="pdp-main-img" onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/600x600/f5f5f6/282c3f?text=${encodeURIComponent(product.name.slice(0, 6))}`; }} />
+                  <img {...imgProps(img, "(min-width:1024px) 50vw, 100vw")} alt={`${product.name} ${i + 1}`} className="pdp-main-img" width={800} height={800} decoding="async" {...(i === 0 ? { fetchPriority: "high" as const } : { loading: "lazy" as const })} onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/600x600/f5f5f6/282c3f?text=${encodeURIComponent(product.name.slice(0, 6))}`; }} />
                 </div>
               )) : (
                 <div className="pdp-img-slide">
-                  <img src={product.imageUrl} alt={product.name} className="pdp-main-img" onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/600x600/f5f5f6/282c3f?text=${encodeURIComponent(product.name.slice(0, 6))}`; }} />
+                  <img {...imgProps(product.imageUrl, "(min-width:1024px) 50vw, 100vw")} alt={product.name} className="pdp-main-img" width={800} height={800} decoding="async" fetchPriority="high" onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/600x600/f5f5f6/282c3f?text=${encodeURIComponent(product.name.slice(0, 6))}`; }} />
                 </div>
               )}
             </div>
             {images.length > 1 && (
               <div style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 5 }}>
                 {images.map((_, i) => (
-                  <button key={i} className="pdp-dot" style={{ width: i === currentSlide ? 22 : 6, background: i === currentSlide ? GOLD : "rgba(0,0,0,.25)" }}
+                  <button key={i} className="pdp-dot" aria-label={`Show photo ${i + 1}`} aria-current={i === currentSlide} style={{ width: i === currentSlide ? 22 : 6, background: i === currentSlide ? GOLD : "rgba(0,0,0,.25)" }}
                     onClick={() => { imgScrollRef.current?.scrollTo({ left: i * (imgScrollRef.current?.offsetWidth ?? 0), behavior: "smooth" }); setCurrentSlide(i); }} />
                 ))}
               </div>
@@ -853,7 +877,7 @@ export default function ProductDetail() {
               <StarRating rating={product.rating ?? 4.2} count={product.reviewCount ?? 0} />
             </div>
             {product.stock > 0 && product.stock <= 5 && (
-              <p style={{ fontSize: 12, color: "#ff3f6c", fontWeight: 800, fontFamily: "'Nunito',sans-serif", margin: "6px 0 0" }}>⚡ Only {product.stock} left in stock!</p>
+              <p style={{ fontSize: 12, color: "#c62048", fontWeight: 800, fontFamily: "'Nunito',sans-serif", margin: "6px 0 0" }}>⚡ Only {product.stock} left in stock!</p>
             )}
           </div>
 
@@ -865,7 +889,7 @@ export default function ProductDetail() {
               {product.originalPrice && <span className="pdp-price-orig">₹{Number(product.originalPrice).toLocaleString("en-IN")}</span>}
               {discount > 0 && <span className="pdp-disc-badge">{discount}% OFF</span>}
             </div>
-            <p style={{ fontSize: 11, color: "#94969f", fontFamily: "'Nunito',sans-serif", margin: "3px 0 0" }}>MRP (Incl. of all taxes)</p>
+            <p style={{ fontSize: 11, color: "#4b5563", fontFamily: "'Nunito',sans-serif", margin: "3px 0 0" }}>MRP (Incl. of all taxes)</p>
             {savings > 0 && <p className="pdp-save-line">You Save ₹{Number(savings).toLocaleString("en-IN")}</p>}
           </div>
 
@@ -878,9 +902,9 @@ export default function ProductDetail() {
               <div style={{ padding: "14px 20px 10px", background: "#fff", borderTop: "1px solid #f5f5f6", display: "flex", alignItems: "center", gap: 14 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#282c3f", fontFamily: "'Nunito',sans-serif" }}>Quantity</span>
                 <div className="pdp-qty">
-                  <button className="pdp-qty-btn" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}>−</button>
+                  <button className="pdp-qty-btn" aria-label="Decrease quantity" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}>−</button>
                   <div className="pdp-qty-num">{quantity}</div>
-                  <button className="pdp-qty-btn" onClick={() => setQuantity(q => Math.min(product.stock, q + 1))} disabled={quantity >= product.stock}>+</button>
+                  <button className="pdp-qty-btn" aria-label="Increase quantity" onClick={() => setQuantity(q => Math.min(product.stock, q + 1))} disabled={quantity >= product.stock}>+</button>
                 </div>
               </div>
               <div className="pdp-cta">
@@ -895,7 +919,7 @@ export default function ProductDetail() {
                 <a href={waUrl(product.name, product.price, true)} target="_blank" rel="noopener noreferrer" className="pdp-btn-wa">
                   {WA_SVG} Order on WhatsApp
                 </a>
-                <p style={{ fontSize: 11, color: "#94969f", fontFamily: "'Nunito',sans-serif", textAlign: "center", margin: "4px 0 0" }}>
+                <p style={{ fontSize: 11, color: "#4b5563", fontFamily: "'Nunito',sans-serif", textAlign: "center", margin: "4px 0 0" }}>
                   🔒 Trusted by 1 lakh+ Indians · Secure Checkout · 100% Genuine
                 </p>
               </div>
@@ -908,7 +932,7 @@ export default function ProductDetail() {
 
           {/* ── ORDER TIMELINE ── */}
           <div style={{ padding: "16px 20px 8px", background: "#fff", borderTop: "8px solid #f5f5f6" }}>
-            <p style={{ fontSize: 11, fontWeight: 800, color: "#94969f", letterSpacing: 1.2, textTransform: "uppercase", fontFamily: "'Nunito',sans-serif", margin: "0 0 4px" }}>DELIVERY</p>
+            <p style={{ fontSize: 11, fontWeight: 800, color: "#4b5563", letterSpacing: 1.2, textTransform: "uppercase", fontFamily: "'Nunito',sans-serif", margin: "0 0 4px" }}>DELIVERY</p>
             <OrderTimeline />
           </div>
 
@@ -927,7 +951,7 @@ export default function ProductDetail() {
           )}
 
           {/* ── SPOTLIGHTS ── */}
-          <SpotlightsSection />
+          {SPOTLIGHTS.length > 0 && <SpotlightsSection />}
 
           {/* ── FAQ ── */}
           <div style={{ background: "#f5f0e0", borderTop: "8px solid #f5f5f6", padding: "20px 16px 24px" }}>

@@ -208,6 +208,25 @@ test("image upload: rejects SVG, disguised files, wrong sizes, tiny/huge dimensi
   assert.equal((await api("GET", "/uploads/does-not-exist-123")).status, 404);
 });
 
+test("image variants: resized WebP is smaller, width-whitelisted, immutable-cached", async () => {
+  const sharp = require("sharp");
+  const real = await sharp({ create: { width: 1200, height: 900, channels: 3, background: { r: 201, g: 168, b: 76 } } })
+    .composite([{ input: Buffer.from('<svg width="1200" height="900"><circle cx="600" cy="450" r="300" fill="#1a5a32"/></svg>'), top: 0, left: 0 }]).jpeg({ quality: 95 }).toBuffer();
+  const up = await api("POST", "/uploads/product-image", { token: adminToken, raw: real, headers: { "Content-Type": "image/jpeg" } });
+  assert.equal(up.status, 201, JSON.stringify(up.body));
+  const path = up.body.url.replace("/api", "");
+  const small = await api("GET", `${path}?w=320`);
+  assert.equal(small.status, 200);
+  assert.equal(small.headers.get("content-type"), "image/webp");
+  assert.equal((await sharp(small.buf).metadata()).width, 320);
+  assert.ok(small.buf.length < real.length / 3, "variant must be far smaller than the original");
+  assert.match(small.headers.get("cache-control"), /immutable/);
+  const orig = await api("GET", path);
+  assert.ok(orig.buf.equals(real), "no ?w serves the untouched original");
+  assert.equal((await api("GET", `${path}?w=999`)).status, 400, "arbitrary widths are refused (no resize-bomb)");
+  assert.equal((await api("GET", `${path}?w=5000`)).status, 400);
+});
+
 // ── Product validation ─────────────────────────────────────────────────────
 const prod = (over = {}) => ({ name: `Valid Tea ${sfx} ${rnd()}`, description: "Fine Assam tea", price: 300, categoryId, imageUrl: "https://cdn.example.com/tea.jpg", stock: 5, ...over });
 
@@ -413,4 +432,48 @@ test("management APIs enforce staff permissions", async () => {
   assert.equal((await api("GET", "/manage/analytics/overview", { token: manager })).status, 200);
   assert.equal((await api("GET", "/manage/inventory", { token: manager })).status, 200);
   assert.equal((await api("GET", "/manage/reports/export?type=sales", { token: manager })).status, 200);
+});
+
+// ── Customer accounts ──────────────────────────────────────────────────────
+test("customer accounts: register, login, profile, history (email+phone), security", async () => {
+  const email = `acct-${sfx}@Example.com`; const phone = "9876500011";
+  const reg = await api("POST", "/customers/register", { body: { name: "Acct User", email, phone: "+91 98765 00011", password: "correct-horse-1" } });
+  assert.equal(reg.status, 201, JSON.stringify(reg.body));
+  assert.equal(reg.body.customer.email, email.toLowerCase());
+  assert.equal(reg.body.customer.phone, phone);
+  assert.ok(!JSON.stringify(reg.body).includes("password"), "never returns the hash");
+  const hash = (await pool.query("SELECT password_hash FROM customers WHERE email=$1", [email.toLowerCase()])).rows[0].password_hash;
+  assert.match(hash, /^\$2[aby]\$/, "password is bcrypt-hashed");
+
+  assert.equal((await api("POST", "/customers/register", { body: { name: "Dup", email: email.toUpperCase(), phone, password: "another-pass-1" } })).status, 409);
+  const bad = (over) => api("POST", "/customers/register", { body: { name: "X Y", email: `v-${rnd()}@example.com`, phone, password: "longenough1", ...over } });
+  assert.equal((await bad({ password: "short" })).status, 400);
+  assert.equal((await bad({ phone: "12345" })).status, 400);
+  assert.equal((await bad({ email: "nope" })).status, 400);
+
+  assert.equal((await api("POST", "/customers/login", { body: { email, password: "wrong-password" } })).status, 401);
+  assert.equal((await api("POST", "/customers/login", { body: { email: "ghost@example.com", password: "whatever123" } })).status, 401);
+  const login = await api("POST", "/customers/login", { body: { email: email.toUpperCase(), password: "correct-horse-1" } });
+  assert.equal(login.status, 200);
+  const t = login.body.token;
+
+  assert.equal((await api("GET", "/customers/me")).status, 401);
+  assert.equal((await api("GET", "/customers/me", { token: "junk" })).status, 401);
+  assert.equal((await api("GET", "/customers/me", { token: t })).body.name, "Acct User");
+  // customer tokens are not admin/staff tokens
+  assert.equal((await api("GET", "/manage/customers", { token: t })).status, 401);
+  assert.equal((await api("POST", "/products", { token: t, body: {} })).status, 401);
+
+  const upd = await api("PATCH", "/customers/me", { token: t, body: { address: "12 Zoo Road", city: "Guwahati", state: "Assam", pincode: "781005" } });
+  assert.equal(upd.status, 200); assert.equal(upd.body.city, "Guwahati");
+  assert.equal((await api("PATCH", "/customers/me", { token: t, body: { pincode: "12" } })).status, 400);
+
+  // order history needs BOTH email and phone to match
+  const pid = await seedProduct("Acct Tea", "100.00", 20);
+  const mine = await api("POST", "/orders", { body: { ...customer(email.toLowerCase()), customerPhone: phone, items: [{ productId: pid, quantity: 1 }] } });
+  const strangers = await api("POST", "/orders", { body: { ...customer(email.toLowerCase()), customerPhone: "9000000000", items: [{ productId: pid, quantity: 1 }] } });
+  assert.equal(mine.status, 201); assert.equal(strangers.status, 201);
+  const hist = await api("GET", "/customers/me/orders", { token: t });
+  assert.equal(hist.status, 200);
+  assert.deepEqual(hist.body.orders.map((o) => o.id), [mine.body.id], "an order with the same email but a different phone must not appear");
 });

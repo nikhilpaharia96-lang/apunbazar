@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSEO } from "@/hooks/use-seo";
 import { useLocation, useParams } from "wouter";
 
 interface Category { id: number; name: string; slug: string; description?: string; imageUrl?: string; }
@@ -195,7 +196,7 @@ function Stars({ rating, accent }: { rating: number; accent: string }) {
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
         </svg>
       ))}
-      <span style={{ fontSize: 10, color: "#999", marginLeft: 2 }}>{rating.toFixed(1)}</span>
+      <span style={{ fontSize: 10, color: "#4b5563", marginLeft: 2 }}>{rating.toFixed(1)}</span>
     </div>
   );
 }
@@ -246,7 +247,7 @@ function ProductCard({
           </div>
         )}
         {disc >= 10 && (
-          <div style={{ position: "absolute", top: 10, left: 10, background: "#d44c2a", color: "#fff", borderRadius: 100, padding: "3px 10px", fontSize: 9, letterSpacing: 1, fontWeight: 700 }}>
+          <div style={{ position: "absolute", top: 10, left: 10, background: "#a8341a", color: "#fff", borderRadius: 100, padding: "3px 10px", fontSize: 9, letterSpacing: 1, fontWeight: 700 }}>
             -{disc}%
           </div>
         )}
@@ -258,6 +259,7 @@ function ProductCard({
 
         {/* Wishlist */}
         <button
+          aria-label={`Save ${p.name} to wishlist`}
           onClick={e => { e.stopPropagation(); onWishlist(p.id); }}
           style={{
             position: "absolute", top: 10, right: 10,
@@ -299,7 +301,7 @@ function ProductCard({
 
         {/* Origin */}
         {p.origin && (
-          <p style={{ fontSize: 9.5, color: "#aaa", margin: 0, display: "flex", alignItems: "center", gap: 3 }}>
+          <p style={{ fontSize: 9.5, color: "#4b5563", margin: 0, display: "flex", alignItems: "center", gap: 3 }}>
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
             </svg>
@@ -316,10 +318,10 @@ function ProductCard({
             ₹{price.toLocaleString()}
           </span>
           {disc > 0 && (
-            <span style={{ fontSize: 11, color: "#bbb", textDecoration: "line-through" }}>₹{orig.toLocaleString()}</span>
+            <span style={{ fontSize: 11, color: "#4b5563", textDecoration: "line-through" }}>₹{orig.toLocaleString()}</span>
           )}
           {disc >= 10 && (
-            <span style={{ fontSize: 9, color: "#d44c2a", fontWeight: 700, background: "#fff0ea", padding: "1px 7px", borderRadius: 100 }}>
+            <span style={{ fontSize: 9, color: "#a8341a", fontWeight: 700, background: "#fff0ea", padding: "1px 7px", borderRadius: 100 }}>
               {disc}% OFF
             </span>
           )}
@@ -413,6 +415,7 @@ function normalizeSlug(raw: string): string {
 
 
 export default function CategoryPage() {
+  useSEO({ title: decodeURIComponent(window.location.pathname.split("/").filter(Boolean).pop() ?? "Category").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), description: "Authentic Assamese products in this category — direct from local artisans and growers." });
   const params = useParams<{ slug: string }>();
   const [, navigate] = useLocation();
   const rawSlug = decodeURIComponent(params.slug ?? "all");
@@ -639,7 +642,7 @@ export default function CategoryPage() {
           {/* Banner dots */}
           <div style={{ position: "absolute", bottom: 12, right: 16, display: "flex", gap: 6, zIndex: 5 }}>
             {cfg.banners.map((_, i) => (
-              <button key={i} onClick={() => setBannerIdx(i)}
+              <button key={i} aria-label={`Show banner ${i + 1}`} onClick={() => setBannerIdx(i)}
                 style={{ height: 4, borderRadius: 100, cursor: "pointer", border: "none", padding: 0, transition: "all .3s", width: i === bannerIdx ? 18 : 4, background: i === bannerIdx ? cfg.accent : "rgba(255,255,255,0.4)" }} />
             ))}
           </div>
@@ -661,7 +664,7 @@ export default function CategoryPage() {
                 placeholder={`Search ${category?.name ?? slug}...`}
                 style={{ flex: 1, border: "none", outline: "none", fontFamily: "'Nunito', sans-serif", fontSize: 13, color: "#333", background: "transparent", padding: "10px 0" }} />
               {search && (
-                <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
+                <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
               )}
             </div>
 
@@ -726,7 +729,7 @@ export default function CategoryPage() {
         {/* ═══ SUBCATEGORIES ══════════════════════════════════════════════════ */}
         {cfg.subCategories.length > 0 && (
           <div style={{ paddingTop: 16 }}>
-            <p style={{ padding: "0 14px 8px", fontSize: 9.5, letterSpacing: 3, color: cfg.color, fontWeight: 700, margin: 0, opacity: 0.7 }}>
+            <p style={{ padding: "0 14px 8px", fontSize: 9.5, letterSpacing: 3, color: cfg.color, fontWeight: 700, margin: 0, opacity: 0.85 }}>
               BROWSE SUBCATEGORIES
             </p>
             <div style={{ display: "flex", gap: 10, padding: "2px 14px 2px", overflowX: "auto", scrollbarWidth: "none" }}>
@@ -824,14 +827,14 @@ export default function CategoryPage() {
         {/* ═══ SECTION HEADER ═════════════════════════════════════════════════ */}
         <div style={{ padding: "14px 14px 6px", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
           <div>
-            <p style={{ fontSize: 9.5, letterSpacing: 3, color: cfg.accent, fontWeight: 700, margin: "0 0 2px" }}>
+            <p style={{ fontSize: 9.5, letterSpacing: 3, color: "#3f6a1f", fontWeight: 700, margin: "0 0 2px" }}>
               {activeSub_ ? activeSub_.name.toUpperCase() : "ALL PRODUCTS"}
             </p>
             <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 19, fontWeight: 600, color: "#1a2d1a", margin: 0 }}>
               {activeChild
                 ? activeSub_?.childCategories?.find(c => c.slug === activeChild)?.name
                 : activeSub_?.name ?? (category?.name ?? "Collection")}
-              <span style={{ fontSize: 12, color: "#bbb", marginLeft: 6, fontFamily: "'Nunito', sans-serif", fontWeight: 400 }}>
+              <span style={{ fontSize: 12, color: "#4b5563", marginLeft: 6, fontFamily: "'Nunito', sans-serif", fontWeight: 400 }}>
                 ({products.length} items)
               </span>
             </h2>
@@ -847,7 +850,7 @@ export default function CategoryPage() {
               <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "64px 20px", animation: "cpFadeIn .4s ease" }}>
                 <div style={{ fontSize: 52, marginBottom: 12 }}>{cfg.emoji}</div>
                 <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: "#555", margin: "0 0 6px" }}>No products found</p>
-                <p style={{ fontSize: 13, color: "#aaa", margin: 0 }}>Try a different search or browse all categories</p>
+                <p style={{ fontSize: 13, color: "#4b5563", margin: 0 }}>Try a different search or browse all categories</p>
               </div>
             )
             : products.map((p, i) => (
@@ -875,7 +878,7 @@ export default function CategoryPage() {
             </div>
           )}
           {!hasMore && !loading && products.length > 0 && (
-            <p style={{ fontSize: 11, color: "#bbb", letterSpacing: 2.5, fontWeight: 600, margin: 0 }}>
+            <p style={{ fontSize: 11, color: "#4b5563", letterSpacing: 2.5, fontWeight: 600, margin: 0 }}>
               ✦ END OF COLLECTION ✦
             </p>
           )}

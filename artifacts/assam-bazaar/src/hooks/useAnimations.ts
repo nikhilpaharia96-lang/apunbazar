@@ -117,7 +117,7 @@ export function useCartAnimation(durationMs = 1200) {
 //   const { isWishlisted, toggleWishlist } = useWishlistAnimation();
 //   <button
 //     onClick={toggleWishlist}
-//     className={isWishlisted ? 'heart-beat text-red-500' : 'text-gray-400'}
+//     className={isWishlisted ? 'heart-beat text-red-500' : 'text-gray-600'}
 //   >
 //     ♥
 //   </button>

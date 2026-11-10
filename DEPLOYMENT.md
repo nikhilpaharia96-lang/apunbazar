@@ -6,7 +6,7 @@ Browser → Vercel (React SPA) —/api/* rewrite→ API server (Render/Railway) 
 
 ## 1. Database
 Apply the schema (`DATABASE_URL=... pnpm --filter @workspace/db run push`) **or** run the SQL files in
-`supabase/migrations/` in order. `002_orders_payment_and_coupons.sql` is additive and safe to re-run.
+`supabase/migrations/` in order. `002`–`004` (payments/coupons, inventory ledger + image storage, customer accounts) are additive and safe to re-run.
 
 ## 2. API server environment variables
 | Variable | Notes |
@@ -18,6 +18,10 @@ Apply the schema (`DATABASE_URL=... pnpm --filter @workspace/db run push`) **or*
 | `ALLOWED_ORIGINS` | comma-separated site origins (CORS) |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | use `rzp_test_*` first |
 | `RAZORPAY_WEBHOOK_SECRET` | same secret you set on the webhook in Razorpay |
+| `TRUST_PROXY_HOPS` | reverse proxies in front of the API. Vercel rewrite → Render = `2`, direct = `1`. **Wrong value = all visitors share one rate-limit bucket** |
+| `ORDER_PAYMENT_TTL_MINUTES` | unpaid online orders are auto-cancelled and stock released after this (default 30) |
+| `GLOBAL_RATE_LIMIT_MAX` | requests per IP per 15 min (default 600) |
+| `BCRYPT_ROUNDS` | customer password cost (default 12) |
 
 Build: `pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server run build` · Start: `node --enable-source-maps ./dist/index.mjs` (from `artifacts/api-server`).
 

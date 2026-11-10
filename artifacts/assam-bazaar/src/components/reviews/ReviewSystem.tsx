@@ -79,7 +79,7 @@ function RatingBar({ label, count, total, onClick, active }: { label: string; co
       <div style={{ flex: 1, height: 8, background: "#f0ead8", borderRadius: 4, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${pct}%`, background: active ? "#1a5a32" : "#f59e0b", borderRadius: 4, transition: "width .4s ease" }} />
       </div>
-      <span style={{ fontSize: 11, color: "#9ca3af", minWidth: 28 }}>{count}</span>
+      <span style={{ fontSize: 11, color: "#4b5563", minWidth: 28 }}>{count}</span>
     </button>
   );
 }
@@ -105,7 +105,7 @@ function ReviewCard({ review, onHelpful }: { review: Review; onHelpful: (id: str
                 <span style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 100, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>✓ Verified</span>
               )}
             </div>
-            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>{timeAgo(review.date)}</div>
+            <div style={{ fontSize: 11, color: "#4b5563", marginTop: 1 }}>{timeAgo(review.date)}</div>
           </div>
         </div>
         <StarDisplay rating={review.rating} size={13} />
@@ -128,7 +128,7 @@ function ReviewCard({ review, onHelpful }: { review: Review; onHelpful: (id: str
 
       {/* Helpful */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, borderTop: "1px solid #f5f0e8", paddingTop: 10 }}>
-        <span style={{ fontSize: 12, color: "#9ca3af" }}>Helpful?</span>
+        <span style={{ fontSize: 12, color: "#4b5563" }}>Helpful?</span>
         <button
           onClick={() => { if (!helped) { onHelpful(review.id); setHelped(true); } }}
           style={{ display: "flex", alignItems: "center", gap: 4, background: helped ? "#f0fdf4" : "#f9f7f3", border: `1px solid ${helped ? "#bbf7d0" : "#e5e0d5"}`, borderRadius: 100, padding: "3px 10px", fontSize: 12, color: helped ? "#16a34a" : "#6b7280", cursor: helped ? "default" : "pointer", transition: "all .2s" }}
@@ -207,7 +207,7 @@ function ReviewForm({ productId, onSubmit }: { productId: number; onSubmit: (r: 
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inputStyle} onFocus={e => e.target.style.borderColor = "#1a5a32"} onBlur={e => e.target.style.borderColor = "#e5e0d5"} />
         </div>
         <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Email <span style={{ color: "#9ca3af", fontWeight: 400 }}>(optional)</span></label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Email <span style={{ color: "#4b5563", fontWeight: 400 }}>(optional)</span></label>
           <input value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" type="email" style={inputStyle} onFocus={e => e.target.style.borderColor = "#1a5a32"} onBlur={e => e.target.style.borderColor = "#e5e0d5"} />
         </div>
       </div>
@@ -239,7 +239,7 @@ function ReviewForm({ productId, onSubmit }: { productId: number; onSubmit: (r: 
         {submitting ? "Submitting..." : "Submit Review"}
       </button>
 
-      <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center" }}>Your review will be visible after moderation.</p>
+      <p style={{ fontSize: 11, color: "#4b5563", textAlign: "center" }}>Your review will be visible after moderation.</p>
     </form>
   );
 }
@@ -307,7 +307,7 @@ export default function ReviewSystem({ productId, productName }: ReviewSystemPro
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: "#1a2d1a", marginBottom: 2 }}>Customer Reviews</h2>
-          {productName && <p style={{ fontSize: 13, color: "#9ca3af" }}>for {productName}</p>}
+          {productName && <p style={{ fontSize: 13, color: "#4b5563" }}>for {productName}</p>}
         </div>
         <button
           onClick={() => setShowForm(v => !v)}
@@ -331,7 +331,7 @@ export default function ReviewSystem({ productId, productName }: ReviewSystemPro
         <div style={{ textAlign: "center", paddingRight: 24, borderRight: "1px solid #f0ead8" }}>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 52, fontWeight: 700, color: "#1a2d1a", lineHeight: 1 }}>{avgRating.toFixed(1)}</div>
           <StarDisplay rating={avgRating} size={16} />
-          <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 5 }}>{total} review{total !== 1 ? "s" : ""}</div>
+          <div style={{ fontSize: 12, color: "#4b5563", marginTop: 5 }}>{total} review{total !== 1 ? "s" : ""}</div>
         </div>
 
         {/* Breakdown bars */}
@@ -350,7 +350,7 @@ export default function ReviewSystem({ productId, productName }: ReviewSystemPro
               {filterRating}★ only ✕
             </button>
           )}
-          <span style={{ fontSize: 13, color: "#9ca3af", alignSelf: "center" }}>{filtered.length} review{filtered.length !== 1 ? "s" : ""}</span>
+          <span style={{ fontSize: 13, color: "#4b5563", alignSelf: "center" }}>{filtered.length} review{filtered.length !== 1 ? "s" : ""}</span>
         </div>
         <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
           style={{ padding: "6px 12px", border: "1.5px solid #e5e0d5", borderRadius: 10, fontSize: 12, fontFamily: "inherit", color: "#374151", background: "#fff", cursor: "pointer", outline: "none" }}>
@@ -363,7 +363,7 @@ export default function ReviewSystem({ productId, productName }: ReviewSystemPro
 
       {/* ── Review Cards ── */}
       {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px 0", color: "#9ca3af" }}>
+        <div style={{ textAlign: "center", padding: "40px 0", color: "#4b5563" }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>🌿</div>
           <p>No reviews for this rating yet.</p>
         </div>
@@ -391,7 +391,7 @@ export default function ReviewSystem({ productId, productName }: ReviewSystemPro
       {/* ── Trust footer ── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 24, padding: "14px 0", borderTop: "1px solid #f5f0e8" }}>
         {[{ icon: "🔒", text: "Secure & Private" }, { icon: "✓", text: "Verified Buyers" }, { icon: "🌿", text: "Honest Reviews" }].map(b => (
-          <div key={b.text} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#9ca3af" }}>
+          <div key={b.text} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#4b5563" }}>
             <span>{b.icon}</span>{b.text}
           </div>
         ))}

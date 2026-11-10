@@ -1,5 +1,4 @@
-// src/hooks/use-seo.ts
-// Per-page SEO meta tags hook
+// src/hooks/use-seo.ts — Per-page SEO: title, description, Open Graph/Twitter, robots, canonical, JSON-LD
 import { useEffect } from "react";
 
 interface SEOMeta {
@@ -7,50 +6,61 @@ interface SEOMeta {
   description?: string;
   image?: string;
   type?: "website" | "product";
+  /** Keep the page out of search results (cart, checkout, account, order pages…) */
+  noindex?: boolean;
+  /** schema.org structured data for this page */
+  jsonLd?: Record<string, unknown>;
 }
 
-export function useSEO({ title, description, image, type = "website" }: SEOMeta) {
-  useEffect(() => {
-    // Page title
-    document.title = `${title} | ApunBazar — Assam ka Dil`;
+const DEFAULT_TITLE = "ApunBazar — Authentic Assamese Products";
+const JSONLD_ID = "seo-jsonld";
 
-    // Meta description
-    const setMeta = (selector: string, attr: string, value: string) => {
-      let el = document.querySelector<HTMLMetaElement>(selector);
-      if (el) {
-        el.setAttribute(attr, value);
-      } else {
-        el = document.createElement("meta");
-        // parse attribute from selector if possible
-        document.head.appendChild(el);
-      }
-    };
+function upsertMeta(attr: "name" | "property", key: string, content: string) {
+  let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
+  if (!el) { el = document.createElement("meta"); el.setAttribute(attr, key); document.head.appendChild(el); }
+  el.setAttribute("content", content);
+}
+
+export function useSEO({ title, description, image, type = "website", noindex = false, jsonLd }: SEOMeta) {
+  const ld = jsonLd ? JSON.stringify(jsonLd) : "";
+  useEffect(() => {
+    const full = `${title} | ApunBazar`;
+    document.title = full;
+    upsertMeta("property", "og:title", full);
+    upsertMeta("name", "twitter:title", full);
+    upsertMeta("property", "og:type", type);
+    upsertMeta("property", "og:site_name", "ApunBazar");
+    upsertMeta("name", "twitter:card", image ? "summary_large_image" : "summary");
 
     if (description) {
-      setMeta('meta[name="description"]', "content", description.slice(0, 155));
-      setMeta('meta[property="og:description"]', "content", description.slice(0, 155));
+      const d = description.replace(/\s+/g, " ").trim().slice(0, 160);
+      upsertMeta("name", "description", d);
+      upsertMeta("property", "og:description", d);
+      upsertMeta("name", "twitter:description", d);
     }
-
-    setMeta('meta[property="og:title"]', "content", title);
-    setMeta('meta[property="og:type"]', "content", type);
-    setMeta('meta[property="og:site_name"]', "content", "ApunBazar");
-
     if (image) {
-      setMeta('meta[property="og:image"]', "content", image);
+      const abs = image.startsWith("http") ? image : `${window.location.origin}${image}`;
+      upsertMeta("property", "og:image", abs);
+      upsertMeta("name", "twitter:image", abs);
     }
+    upsertMeta("name", "robots", noindex ? "noindex, nofollow" : "index, follow");
 
-    // Canonical URL
-    let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement("link");
-      canonical.rel = "canonical";
-      document.head.appendChild(canonical);
+    // Canonical = this page without query string / hash (avoids duplicate-content variants)
+    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) { canonical = document.createElement("link"); canonical.rel = "canonical"; document.head.appendChild(canonical); }
+    canonical.href = `${window.location.origin}${window.location.pathname}`;
+    upsertMeta("property", "og:url", canonical.href);
+
+    document.getElementById(JSONLD_ID)?.remove();
+    if (ld) {
+      const s = document.createElement("script");
+      s.type = "application/ld+json"; s.id = JSONLD_ID; s.text = ld;
+      document.head.appendChild(s);
     }
-    canonical.href = window.location.href;
-
-    // Cleanup: restore default title on unmount
     return () => {
-      document.title = "ApunBazar — Apun ki Dukaan, Assam ka Dil";
+      document.title = DEFAULT_TITLE;
+      document.getElementById(JSONLD_ID)?.remove();
+      upsertMeta("name", "robots", "index, follow");
     };
-  }, [title, description, image, type]);
+  }, [title, description, image, type, noindex, ld]);
 }

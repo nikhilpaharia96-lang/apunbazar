@@ -32,6 +32,8 @@ const Cart          = lazy(() => import("@/pages/cart"));
 const Wishlist      = lazy(() => import("@/pages/wishlist"));
 const Checkout      = lazy(() => import("@/pages/checkout"));
 const Orders        = lazy(() => import("@/pages/orders"));
+const Account       = lazy(() => import("@/pages/account"));
+const CustomerAuth  = lazy(() => import("@/pages/account/auth"));
 const OrderDetail   = lazy(() => import("@/pages/orders/id"));
 const CategoryPage  = lazy(() => import("@/pages/category"));
 const AboutUs       = lazy(() => import("@/pages/about"));
@@ -211,6 +213,9 @@ function Router() {
             <Route path="/wishlist"       component={Wishlist} />
             <Route path="/checkout"       component={Checkout} />
             <Route path="/orders"         component={Orders} />
+            <Route path="/account"        component={Account} />
+            <Route path="/login">{() => <CustomerAuth mode="login" />}</Route>
+            <Route path="/register">{() => <CustomerAuth mode="register" />}</Route>
             <Route path="/orders/:id"     component={OrderDetail} />
             <Route path="/about"          component={AboutUs} />
             <Route path="/contact"        component={ContactUs} />

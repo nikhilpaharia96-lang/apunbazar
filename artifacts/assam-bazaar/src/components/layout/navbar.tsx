@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useCart, useWishlist } from "@/hooks/use-shop-data";
-import { ShoppingCart, Heart, Menu, ChevronDown, X } from "lucide-react";
+import { ShoppingCart, Heart, Menu, ChevronDown, X, User } from "lucide-react";
+import { useCustomer } from "@/lib/customer-auth";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -8,6 +9,7 @@ export default function Navbar() {
   const { cart }              = useCart();
   const { wishlist }          = useWishlist();
   const [location, navigate]  = useLocation();
+  const customer = useCustomer();
   const [mobileOpen, setMobileOpen]   = useState(false);
   const [hoveredMain, setHoveredMain] = useState<number | null>(null);
   const [scrolled, setScrolled]       = useState(false);
@@ -70,7 +72,7 @@ export default function Navbar() {
   <div className="flex flex-col leading-none">
     <span className="font-serif font-bold text-xl leading-none">
       <span style={{ color: "#1a5c2a" }}>Apun</span>
-      <span style={{ color: "#e8920a" }}>Bazar</span>
+      <span style={{ color: "#b86a00" }}>Bazar</span>
     </span>
     <span style={{
       fontSize: 8,
@@ -134,6 +136,13 @@ export default function Navbar() {
           {/* Right icons */}
           <div className="flex items-center gap-2 ml-auto mr-2">
 
+            <Link href={customer ? "/account" : "/login"} aria-label={customer ? "My account" : "Log in"}>
+              <button className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors" aria-label={customer ? "My account" : "Log in"} data-testid="button-account">
+                <User className="h-5 w-5" style={customer ? { color: "#1a5c2a" } : undefined} />
+                {customer && <span className="absolute bottom-1 right-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" aria-hidden />}
+              </button>
+            </Link>
+
             <Link href="/wishlist">
               <button className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors" aria-label="Wishlist">
                 <Heart className={`h-5 w-5 transition-colors ${wishCount > 0 ? "fill-rose-500 text-rose-500" : ""}`} />
@@ -145,7 +154,7 @@ export default function Navbar() {
               </button>
             </Link>
 
-            <Link href="/cart">
+            <Link href="/cart" aria-label="Cart">
               <button className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors" aria-label="Cart">
                 <ShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
@@ -169,7 +178,7 @@ export default function Navbar() {
             <div className="flex items-center justify-between px-4 h-16 border-b flex-shrink-0">
               <span className="font-serif font-bold text-lg">
                 <span style={{ color: "#1a5c2a" }}>Apun</span>
-                <span style={{ color: "#e8920a" }}>Bazar</span>
+                <span style={{ color: "#b86a00" }}>Bazar</span>
               </span>
               <button onClick={() => setMobileOpen(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted">

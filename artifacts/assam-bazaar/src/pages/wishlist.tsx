@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useSEO } from "@/hooks/use-seo";
 import { useRemoveFromWishlist, useAddToCart } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Heart, ShoppingCart, Trash2, Share2, ShieldCheck, Bell, Bookmark, Lock } from "lucide-react";
@@ -15,6 +16,7 @@ const TRUST = [
 ];
 
 export default function Wishlist() {
+  useSEO({ title: "Wishlist", noindex: true });
   const { wishlist, isLoading } = useWishlist();
   const { sessionId } = useSession();
   const { toast } = useToast();
@@ -69,7 +71,7 @@ export default function Wishlist() {
                   </span>
                 )}
               </div>
-              <p style={{ fontSize: 13, color: "#999", marginTop: 2 }}>Your saved favourites</p>
+              <p style={{ fontSize: 13, color: "#4b5563", marginTop: 2 }}>Your saved favourites</p>
             </div>
           </div>
           <button
@@ -97,7 +99,7 @@ export default function Wishlist() {
             <h2 style={{ fontFamily: "'Georgia',serif", fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
               Your wishlist is empty
             </h2>
-            <p style={{ color: "#999", fontSize: 14, marginBottom: 20 }}>
+            <p style={{ color: "#4b5563", fontSize: 14, marginBottom: 20 }}>
               Save products you love
             </p>
             <Link href="/products">
@@ -187,7 +189,7 @@ export default function Wishlist() {
 
                         {/* Artisan/desc */}
                         {p.artisan && (
-                          <p style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>{p.artisan}</p>
+                          <p style={{ fontSize: 12, color: "#4b5563", marginBottom: 6 }}>{p.artisan}</p>
                         )}
 
                         {/* Stars */}
@@ -198,7 +200,7 @@ export default function Wishlist() {
                             ))}
                             <span style={{ fontSize: 12, fontWeight: 600, color: "#333" }}>{p.rating.toFixed(1)}</span>
                             {p.reviewCount > 0 && (
-                              <span style={{ fontSize: 11, color: "#999" }}>({p.reviewCount})</span>
+                              <span style={{ fontSize: 11, color: "#4b5563" }}>({p.reviewCount})</span>
                             )}
                           </div>
                         )}
@@ -209,7 +211,7 @@ export default function Wishlist() {
                             ₹{p.price.toLocaleString("en-IN")}
                           </span>
                           {p.originalPrice && (
-                            <span style={{ fontSize: 13, color: "#aaa", textDecoration: "line-through" }}>
+                            <span style={{ fontSize: 13, color: "#4b5563", textDecoration: "line-through" }}>
                               ₹{p.originalPrice.toLocaleString("en-IN")}
                             </span>
                           )}
@@ -274,7 +276,7 @@ export default function Wishlist() {
                 <p style={{ fontWeight: 700, fontSize: 15, color: "#1a1a1a", marginBottom: 3 }}>
                   Keep adding your favourites!
                 </p>
-                <p style={{ fontSize: 12, color: "#888", lineHeight: 1.5 }}>
+                <p style={{ fontSize: 12, color: "#4b5563", lineHeight: 1.5 }}>
                   We'll remind you when there are great offers.
                 </p>
               </div>
@@ -313,7 +315,7 @@ export default function Wishlist() {
                     <Icon className="h-5 w-5 text-[#1A6B3C]" />
                   </div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: "#1a1a1a", marginBottom: 2 }}>{label}</p>
-                  <p style={{ fontSize: 10, color: "#999", lineHeight: 1.4 }}>{sub}</p>
+                  <p style={{ fontSize: 10, color: "#4b5563", lineHeight: 1.4 }}>{sub}</p>
                 </div>
               ))}
             </div>

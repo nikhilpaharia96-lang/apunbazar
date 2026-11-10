@@ -1,4 +1,6 @@
 import ExperienceAssamSection from "@/components/ExperienceAssamSection";
+import { useSEO } from "@/hooks/use-seo";
+import { imgProps } from "@/lib/img";
 import ArtisanBanner from "@/components/ArtisanBanner";
 import { Link } from "wouter";
 import { useEffect, useState, useRef } from "react";
@@ -101,9 +103,9 @@ function GlobalStyles() {
 
       .ab-noscroll { scrollbar-width:none; -ms-overflow-style:none; }
       .ab-noscroll::-webkit-scrollbar { display:none; }
-      .ab-label { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:${GOLD}; margin-bottom:6px; }
+      .ab-label { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:#7a5c0e; margin-bottom:6px; }
       .ab-h2 { font-family:'Playfair Display',serif; font-size:clamp(1.5rem,4vw,2rem); font-weight:700; color:#111827; line-height:1.2; }
-      .ab-h2 span { color:${GOLD}; }
+      .ab-h2 span { color:#7a5c0e; }
       .ab-viewall { white-space:nowrap; flex-shrink:0; display:inline-flex; align-items:center; gap:4px; font-size:13px; font-weight:600; color:${G}; text-decoration:none; transition:gap .2s; }
       .ab-viewall:hover { gap:8px; }
       .ab-hero-primary { display:inline-flex; align-items:center; gap:8px; padding:13px 26px; border-radius:50px; background:${GOLD}; color:#111; font-weight:700; font-size:14px; border:none; cursor:pointer; text-decoration:none; box-shadow:0 8px 24px rgba(201,168,76,.45); transition:transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s; }
@@ -242,7 +244,7 @@ function HeroSlider() {
       </div>
       <div style={{ position: "absolute", bottom: 22, left: "50%", transform: "translateX(-50%)", zIndex: 4, display: "flex", gap: 7, alignItems: "center" }}>
         {slides.map((sl, i) => (
-          <button key={sl.id} onClick={() => goTo(i)} style={{ height: 8, width: i === current ? 26 : 8, borderRadius: 4, background: i === current ? s.accent : "rgba(255,255,255,.38)", border: "none", cursor: "pointer", transition: "all .35s", padding: 0 }} />
+          <button key={sl.id} aria-label={`Show slide ${i + 1}`} aria-current={i === current} onClick={() => goTo(i)} style={{ height: 8, width: i === current ? 26 : 8, borderRadius: 4, background: i === current ? s.accent : "rgba(255,255,255,.38)", border: "none", cursor: "pointer", transition: "all .35s", padding: 0 }} />
         ))}
       </div>
     </section>
@@ -253,7 +255,7 @@ function HeroSlider() {
 function TrustBar() {
   const items = [
     { tag: "Fast & Reliable", title: "Free Shipping", desc: "Orders Above ₹499", iconColor: "#1a5a32", ringColor: "#4caf50", bg: "#f0f7f0", border: "#c2e0ce", tagColor: "#2e7d32", icon: (c: string) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> },
-    { tag: "Pure & Authentic", title: "100% Authentic", desc: "Verified Assamese Products", iconColor: "#c9a84c", ringColor: "#e6b94a", bg: "#fdf8ee", border: "#e8d5a0", tagColor: "#b8860b", icon: (c: string) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg> },
+    { tag: "Pure & Authentic", title: "100% Authentic", desc: "Verified Assamese Products", iconColor: "#c9a84c", ringColor: "#e6b94a", bg: "#fdf8ee", border: "#e8d5a0", tagColor: "#7a5a05", icon: (c: string) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg> },
     { tag: "Clean & Natural", title: "Natural Products", desc: "Fresh & Carefully Selected", iconColor: "#2e7d32", ringColor: "#4caf50", bg: "#f0f7f0", border: "#bddfa0", tagColor: "#2e7d32", icon: (c: string) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20C19 20 22 3 22 3c-1 2-8 2-8 2s1-3 3-4c-4 0-6 2-6 2S5 3 5 6c0 2.23 1.93 3.42 2 5z"/></svg> },
     { tag: "Always With You", title: "24/7 Support", desc: "Always Here To Help", iconColor: "#1565c0", ringColor: "#42a5f5", bg: "#e8f0fb", border: "#a8bede", tagColor: "#1565c0", icon: (c: string) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg> },
   ];
@@ -275,7 +277,7 @@ function TrustBar() {
               <p style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: item.tagColor, margin: "0 0 3px" }}>{item.tag}</p>
               <div style={{ width: 16, height: 1.5, background: item.tagColor, borderRadius: 2, marginBottom: 4, opacity: 0.7 }} />
               <p style={{ fontSize: 12.5, fontWeight: 700, fontFamily: "'Playfair Display', serif", color: "#1a2d1a", margin: "0 0 3px", lineHeight: 1.2 }}>{item.title}</p>
-              <p style={{ fontSize: 9.5, color: "#888", margin: 0, lineHeight: 1.4 }}>{item.desc}</p>
+              <p style={{ fontSize: 9.5, color: "#4b5563", margin: 0, lineHeight: 1.4 }}>{item.desc}</p>
             </div>
             <svg style={{ position: "absolute", bottom: -3, right: -3, opacity: 0.06, pointerEvents: "none" }} width="46" height="46" viewBox="0 0 24 24" fill={item.iconColor}><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20C19 20 22 3 22 3c-1 2-8 2-8 2s1-3 3-4c-4 0-6 2-6 2S5 3 5 6c0 2.23 1.93 3.42 2 5z"/></svg>
           </div>
@@ -330,17 +332,17 @@ function CategorySection({ categories, isLoading }: { categories: any[]; isLoadi
           <p className="ab-label" style={{ marginBottom: 5 }}><IconLeafSmall /> Explore categories</p>
           {/* ── 3. cin-title class ── */}
           <h2 className="ab-serif cin-title" style={{ fontSize: "1.35rem", fontWeight: 700, color: "#1B3A22", margin: 0, lineHeight: 1.2 }}>
-            Shop by <span style={{ color: GOLD }}>Category</span>
+            Shop by <span style={{ color: "#7a5c0e" }}>Category</span>
           </h2>
         </div>
         <Link href="/products" className="ab-viewall" style={{ fontSize: 12 }}>View all <IconArrowRight size={13} /></Link>
       </div>
-      <p style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 16px 4px", color: "#9ca3af", fontSize: 10.5, margin: 0 }}>
+      <p style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 16px 4px", color: "#4b5563", fontSize: 10.5, margin: 0 }}>
         <IconArrowRight size={11} /> Swipe to explore
       </p>
       <div ref={scrollRef} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onTouchStart={() => setPaused(true)} onTouchEnd={() => setTimeout(() => setPaused(false), 2000)}
         style={{ display: "flex", gap: 14, overflowX: "auto", padding: "4px 16px 12px", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" } as React.CSSProperties}
-        className="ab-noscroll">
+        className="ab-noscroll" tabIndex={0} role="region" aria-label="Browse categories">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <div key={i} style={{ flexShrink: 0, width: 148, height: 210, borderRadius: 20, background: "#e5e7eb" }} />)
           : cats.map((cat: any, idx: number) => {
@@ -350,7 +352,7 @@ function CategorySection({ categories, isLoading }: { categories: any[]; isLoadi
                 <Link key={cat.id ?? cat.slug} href={`/category/${cat.slug}`}
                   style={{ flexShrink: 0, width: 148, borderRadius: 20, overflow: "hidden", textDecoration: "none", scrollSnapAlign: "start", background: "#fff", border: `0.5px solid rgba(212,175,55,0.22)`, boxShadow: "0 4px 18px rgba(27,94,32,0.10), 0 1px 4px rgba(0,0,0,0.06)", display: "block" }}>
                   <div style={{ width: "100%", height: 158, overflow: "hidden", position: "relative", background: "#edf5ef" }}>
-                    <img src={imgSrc} alt={cat.name} width={148} height={158}
+                    <img {...imgProps(imgSrc, "148px")} alt={cat.name} width={148} height={158}
                       loading={idx < 3 ? "eager" : "lazy"} decoding="async" fetchPriority={idx < 3 ? "high" : "auto"}
                       style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(27,94,32,0.18) 0%, transparent 55%)", pointerEvents: "none" }} />
@@ -401,12 +403,12 @@ function FeaturedCarousel({ products, isLoading }: { products: any[]; isLoading:
           <h2 className="ab-h2 cin-title" style={{ fontSize: "1.5rem" }}>Featured <span>Products</span></h2>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-          <button className="ab-arrow-btn" onClick={() => { scrollRef.current?.scrollBy({ left: -(CARD_W + GAP), behavior: "smooth" }); setPaused(true); setTimeout(() => setPaused(false), 2000); }}><ChevronLeft size={14} /></button>
-          <button className="ab-arrow-btn" onClick={() => { scrollRef.current?.scrollBy({ left: CARD_W + GAP, behavior: "smooth" }); setPaused(true); setTimeout(() => setPaused(false), 2000); }}><ChevronRight size={14} /></button>
+          <button className="ab-arrow-btn" aria-label="Scroll left" onClick={() => { scrollRef.current?.scrollBy({ left: -(CARD_W + GAP), behavior: "smooth" }); setPaused(true); setTimeout(() => setPaused(false), 2000); }}><ChevronLeft size={14} /></button>
+          <button className="ab-arrow-btn" aria-label="Scroll right" onClick={() => { scrollRef.current?.scrollBy({ left: CARD_W + GAP, behavior: "smooth" }); setPaused(true); setTimeout(() => setPaused(false), 2000); }}><ChevronRight size={14} /></button>
           <Link href="/products?featured=true" className="ab-viewall" style={{ fontSize: 12 }}>View All <IconArrowRight size={13} /></Link>
         </div>
       </div>
-      <div ref={scrollRef} className="ab-noscroll" style={{ display: "flex", gap: GAP, overflowX: "auto", padding: "4px 16px 8px", scrollSnapType: "x mandatory" }} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      <div ref={scrollRef} className="ab-noscroll" tabIndex={0} role="region" aria-label="Featured products" style={{ display: "flex", gap: GAP, overflowX: "auto", padding: "4px 16px 8px", scrollSnapType: "x mandatory" }} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => <div key={i} style={{ width: CARD_W, flexShrink: 0 }}><Skeleton style={{ height: 260, borderRadius: 16, width: "100%" }} /></div>)
           : products.map(p => <div key={p.id} style={{ width: CARD_W, flexShrink: 0, scrollSnapAlign: "start" }}><ProductCard product={p} /></div>)
@@ -461,7 +463,7 @@ function NewArrivalsSection() {
   });
   if (isLoading) return <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} style={{ height: 280, borderRadius: 18 }} />)}</div>;
   const products = Array.isArray(data) ? data : [];
-  if (!products.length) return <div style={{ textAlign: "center", padding: "36px 0", color: "#9ca3af" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><IconLeafSmall color="#9ca3af" /></div><p style={{ fontSize: 13 }}>New arrivals coming soon!</p></div>;
+  if (!products.length) return <div style={{ textAlign: "center", padding: "36px 0", color: "#4b5563" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><IconLeafSmall color="#9ca3af" /></div><p style={{ fontSize: 13 }}>New arrivals coming soon!</p></div>;
   return <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>{products.map((p: any) => <ProductCard key={p.id} product={p} />)}</div>;
 }
 
@@ -534,15 +536,15 @@ function TestimonialsSection() {
         <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
       </svg>
       <div style={{ textAlign: "center", marginBottom: 20, padding: "0 16px", position: "relative", zIndex: 2 }}>
-        <p style={{ color: GOLD, fontSize: 10.5, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+        <p style={{ color: "#7a5c0e", fontSize: 10.5, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
           <IconLeafSmall /> WHAT CUSTOMERS SAY <IconLeafSmall />
         </p>
         {/* ── 3. cin-title ── */}
         <h2 className="ab-serif cin-title" style={{ fontSize: "1.8rem", fontWeight: 800, color: "#151515", margin: 0 }}>
-          Loved Across <span style={{ color: GOLD }}>India</span>
+          Loved Across <span style={{ color: "#7a5c0e" }}>India</span>
         </h2>
       </div>
-      <div ref={scrollRef} style={{ display: "flex", gap: GAP, overflowX: "auto", padding: "4px 16px 8px", scrollbarWidth: "none", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", position: "relative", zIndex: 2 }} className="ab-noscroll" onTouchStart={() => setPaused(true)} onTouchEnd={() => setTimeout(() => setPaused(false), 4000)}>
+      <div ref={scrollRef} tabIndex={0} role="region" aria-label="Customer reviews" style={{ display: "flex", gap: GAP, overflowX: "auto", padding: "4px 16px 8px", scrollbarWidth: "none", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", position: "relative", zIndex: 2 }} className="ab-noscroll" onTouchStart={() => setPaused(true)} onTouchEnd={() => setTimeout(() => setPaused(false), 4000)}>
         {reviews.map((r, idx) => (
           <div key={r.name} className="ab-test-card" style={{ flexShrink: 0, width: CARD_W, background: r.bg, borderRadius: 20, padding: "18px 16px 16px", border: idx === active ? `1px solid ${GOLD}66` : "1px solid rgba(0,0,0,0.06)", boxShadow: idx === active ? "0 10px 28px rgba(201,168,76,0.22)" : "0 2px 12px rgba(0,0,0,0.06)", transform: idx === active ? "translateY(-3px) scale(1.015)" : "translateY(0) scale(1)", scrollSnapAlign: "start", position: "relative", overflow: "hidden" }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(201,168,76,0.15)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
@@ -558,7 +560,7 @@ function TestimonialsSection() {
               <div style={{ display: "none", width: 44, height: 44, borderRadius: "50%", background: TESTIMONIAL_AVATAR_GRADIENTS[idx % TESTIMONIAL_AVATAR_GRADIENTS.length], alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 18, flexShrink: 0 }}>{r.name[0]}</div>
               <div>
                 <p style={{ fontWeight: 800, fontSize: 13, color: "#1a2d1a", margin: 0, fontFamily: "'Nunito',sans-serif" }}>{r.name}</p>
-                <p style={{ fontSize: 10.5, color: "#888", margin: 0, fontFamily: "'Nunito',sans-serif" }}>{r.city}</p>
+                <p style={{ fontSize: 10.5, color: "#4b5563", margin: 0, fontFamily: "'Nunito',sans-serif" }}>{r.city}</p>
               </div>
             </div>
             <svg style={{ position: "absolute", bottom: -8, right: -8, opacity: 0.18, pointerEvents: "none" }} width="70" height="70" viewBox="0 0 24 24" fill={r.leaf}><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20C19 20 22 3 22 3c-1 2-8 2-8 2s1-3 3-4c-4 0-6 2-6 2S5 3 5 6c0 2.23 1.93 3.42 2 5z"/></svg>
@@ -580,7 +582,7 @@ function TestimonialsSection() {
             <div key={b.label} style={{ flex: 1, textAlign: "center", borderRight: idx < 3 ? "1px solid #f0ece4" : "none", padding: "0 4px" }}>
               <div style={{ display: "flex", justifyContent: "center", marginBottom: 3 }}>{b.icon}</div>
               <p style={{ fontWeight: 700, fontSize: 9.5, color: "#111827", lineHeight: 1.2, margin: 0 }}>{b.label}</p>
-              <p style={{ fontSize: 8.5, color: "#9ca3af", lineHeight: 1.3, margin: 0 }}>{b.sub}</p>
+              <p style={{ fontSize: 8.5, color: "#4b5563", lineHeight: 1.3, margin: 0 }}>{b.sub}</p>
             </div>
           ))}
         </div>
@@ -615,6 +617,7 @@ function RecentlyViewedSection() {
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
 export default function Home() {
+  useSEO({ title: "Authentic Assamese Tea, Handloom & Handicrafts", description: "Shop genuine Assam tea, Muga & Pat silk, gamusa, bamboo crafts and traditional foods direct from Assam’s artisans. Delivered across India." });
   const { data: featured, isLoading: featuredLoading } = useGetFeaturedProducts({ query: { queryKey: getGetFeaturedProductsQueryKey() } });
   const { data: categoriesRaw, isLoading: catLoading } = useQuery({
     queryKey: ["main-categories-with-count"],

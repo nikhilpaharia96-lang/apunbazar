@@ -45,7 +45,9 @@ export function createApp(): Express {
   const app: Express = express();
 
   // Trust reverse proxy (Railway, Vercel, nginx) for accurate IP rate limiting
-  app.set("trust proxy", 1);
+  // Number of reverse proxies in front of the API. Direct Render/Railway = 1; Vercel rewrite → Render = 2.
+  // Wrong values make every visitor share one IP (and one rate-limit bucket) — set TRUST_PROXY_HOPS in production.
+  app.set("trust proxy", Math.max(0, Number(process.env.TRUST_PROXY_HOPS ?? 1)));
 
   // Security headers via helmet (11 headers vs the original 4)
   app.use(

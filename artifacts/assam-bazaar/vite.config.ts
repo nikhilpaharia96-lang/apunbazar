@@ -36,7 +36,8 @@ export default defineConfig({
           router:  ["wouter"],
           query:   ["@tanstack/react-query"],
           ui:      ["lucide-react"],
-          charts:  ["recharts"],
+          // recharts is intentionally NOT a manual chunk: forcing it leaked shared helpers into the entry
+          // graph and made every storefront visitor download the 424 KB charts bundle.
           motion:  ["framer-motion"],
         },
       },

@@ -25,6 +25,7 @@
     "pino": "^9",
     "pino-http": "^10",
     "razorpay": "^2.9.6",
+    "sharp": "^0.35.5",
     "zod": "catalog:"
   },
   "devDependencies": {

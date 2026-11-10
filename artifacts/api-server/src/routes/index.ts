@@ -12,6 +12,7 @@ import couponsRouter   from "./coupons";
 import settingsRouter  from "./settings";
 import uploadsRouter   from "./uploads";
 import manageRouter    from "./manage";
+import customersRouter from "./customers";
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use("/coupons",    couponsRouter);
 router.use("/settings",   settingsRouter);
 router.use("/uploads",    uploadsRouter);
 router.use("/manage",     manageRouter);
+router.use("/customers",  customersRouter);
 
 export default router;

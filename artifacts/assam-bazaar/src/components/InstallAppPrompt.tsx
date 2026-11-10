@@ -167,7 +167,7 @@ export default function InstallAppPrompt() {
                 NEW
               </span>
             </p>
-            <p className="mt-0.5 text-[10.5px] font-medium leading-[1.25] text-neutral-500">
+            <p className="mt-0.5 text-[10.5px] font-medium leading-[1.25] text-neutral-600">
               Download karein —{" "}
               <span className="font-semibold text-neutral-800">tez shopping, aasan orders</span>
             </p>

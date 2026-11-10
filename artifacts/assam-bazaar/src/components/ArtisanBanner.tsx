@@ -236,6 +236,7 @@ export default function ArtisanBanner() {
                 <button
                   key={i}
                   className="ab-dot"
+                  aria-label={`Go to slide ${i + 1}`}
                   onClick={() => goTo(i)}
                   style={{
                     width: i === current ? 22 : 6,

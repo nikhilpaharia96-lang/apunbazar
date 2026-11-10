@@ -62,16 +62,11 @@ const SOCIAL_LINKS = [
   },
 ];
 
-/* Real payment brand logos via Wikipedia SVGs */
+/* Payment methods shown as local text badges — no third-party image requests (faster, works offline, no hot-linking) */
 const PAYMENTS = [
-  { label: "Visa",       src: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" },
-  { label: "Mastercard", src: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" },
-  { label: "RuPay",      src: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/RuPay.svg/1280px-RuPay.svg.png" },
-  { label: "UPI",        src: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/UPI-Logo-vector.svg/1280px-UPI-Logo-vector.svg.png" },
-  { label: "G Pay",      src: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Google_Pay_Logo.svg/1280px-Google_Pay_Logo.svg.png" },
-  { label: "PhonePe",    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/PhonePe_Logo.svg/1280px-PhonePe_Logo.svg.png" },
-  { label: "Paytm",      src: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Paytm_Logo_%28standalone%29.svg/1280px-Paytm_Logo_%28standalone%29.svg.png" },
-  { label: "Apple Pay",  src: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Apple_Pay_logo.svg/1280px-Apple_Pay_logo.svg.png" },
+  { label: "Visa", color: "#1a1f71" }, { label: "Mastercard", color: "#b3261e" }, { label: "RuPay", color: "#0b5cab" },
+  { label: "UPI", color: "#2f6b3a" }, { label: "GPay", color: "#1a73e8" }, { label: "PhonePe", color: "#5f259f" },
+  { label: "Paytm", color: "#00789a" }, { label: "COD", color: "#8f5518" },
 ];
 
 function loadSocials() {
@@ -85,7 +80,7 @@ function loadSocials() {
   return { facebook: "", instagram: "", whatsapp: "", youtube: "" };
 }
 
-const GREEN = "#1A5C2A"; const GREEN_DARK = "#10351C"; const GOLD = "#C17B3E"; const IVORY = "#FAF8F2";
+const GREEN = "#1A5C2A"; const GREEN_DARK = "#10351C"; const GOLD = "#774813"; const IVORY = "#FAF8F2";
 
 export default function Footer() {
   const [socials, setSocials]   = useState(loadSocials);
@@ -135,7 +130,7 @@ export default function Footer() {
         .ab-nav-link:hover { color: ${GREEN} !important; transform: translateX(2px); }
         .ab-nav-link:hover .ab-nav-arrow { transform: translateX(3px); color: ${GREEN} !important; }
         .ab-nav-arrow { transition: transform .25s ease, color .25s ease; display:inline-block; }
-        .ab-newsletter-input { transition: box-shadow .3s ease, border-color .3s ease; }
+        .ab-newsletter-input { transition: box-shadow .3s ease, border-color .3s ease; min-height: 44px; }
         .ab-newsletter-input:focus { border-color: ${GOLD} !important; box-shadow: 0 0 0 3px rgba(193,123,62,.18); }
         @keyframes ab-kenburns { 0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)} }
         .ab-bb-bg { animation: ab-kenburns 18s ease-in-out infinite; }
@@ -325,7 +320,7 @@ export default function Footer() {
           <form onSubmit={handleSubscribe} style={{ display:"flex", gap:8, marginTop:14 }}>
             <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email"
               className="ab-newsletter-input"
-              style={{ flex:1, borderRadius:999, border:"1px solid rgba(26,92,42,.2)", padding:"10px 16px", fontSize:13.5, outline:"none", background:"#fff", color:"#222" }} />
+              style={{ flex:1, borderRadius:999, border:"1px solid rgba(26,92,42,.2)", padding:"12px 16px", fontSize:16, outline:"none", background:"#fff", color:"#222" }} />
             <motion.button whileHover={{ scale:1.04 }} whileTap={{ scale:.97 }} type="submit"
               style={{ background:`linear-gradient(135deg,${GOLD},#a8632e)`, color:"#fff", border:"none", borderRadius:999, padding:"10px 20px", fontSize:13.5, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:6, whiteSpace:"nowrap" }}>
               Subscribe <span>→</span>
@@ -349,8 +344,7 @@ export default function Footer() {
                 border:"1px solid rgba(0,0,0,.08)",
                 boxShadow:"0 2px 8px rgba(0,0,0,.07)",
               }}>
-                <img src={p.src} alt={p.label} style={{ height:22, maxWidth:58, objectFit:"contain", display:"block" }}
-                  onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }} />
+                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".02em", color: p.color, whiteSpace: "nowrap" }}>{p.label}</span>
               </div>
             ))}
           </div>

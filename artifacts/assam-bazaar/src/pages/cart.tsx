@@ -1,4 +1,6 @@
 import { Link } from "wouter";
+import { useSEO } from "@/hooks/use-seo";
+import { imgProps } from "@/lib/img";
 import { useUpdateCartItem, useRemoveFromCart } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Trash2, ShoppingCart, ArrowRight, ArrowLeft, Tag, Truck, Shield, RotateCcw } from "lucide-react";
@@ -7,6 +9,7 @@ import { trackRemoveFromCart, clarityCartValue } from "@/lib/analytics";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Cart() {
+  useSEO({ title: "Your Cart", noindex: true });
   const { cart, isLoading } = useCart();
   const invalidateCart = useInvalidateCart();
   const { toast } = useToast();
@@ -63,7 +66,7 @@ export default function Cart() {
             Shopping Cart
           </h1>
           {cart && (
-            <span className="text-sm text-gray-500 font-medium">
+            <span className="text-sm text-gray-600 font-medium">
               ({cart.itemCount} item{cart.itemCount !== 1 ? "s" : ""})
             </span>
           )}
@@ -77,7 +80,7 @@ export default function Cart() {
           <div className="text-center py-20 bg-white rounded-3xl shadow-sm">
             <ShoppingCart className="h-16 w-16 mx-auto mb-4 opacity-20" style={{ color: "#1a5a32" }} />
             <h2 className="font-serif text-2xl font-bold mb-2">Cart khali hai</h2>
-            <p className="text-gray-500 mb-6 text-sm">Kuch khoobsurat Assamese products add karo</p>
+            <p className="text-gray-600 mb-6 text-sm">Kuch khoobsurat Assamese products add karo</p>
             <Link href="/products">
               <button className="checkout-btn" style={{ width: "auto", padding: "12px 28px" }}>
                 Products Browse Karo
@@ -112,7 +115,7 @@ export default function Cart() {
                       {/* Image */}
                       <Link href={`/products/${product?.id ?? ""}`}>
                         <div style={{ width: 90, height: 90, borderRadius: 12, overflow: "hidden", background: "#f5f5f0", flexShrink: 0 }}>
-                          <img src={imgSrc} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          <img {...imgProps(imgSrc, "90px")} alt={name} loading="lazy" decoding="async" width={90} height={90} style={{ width: "100%", height: "100%", objectFit: "cover" }}
                             onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/90x90/e8f0e9/2d6a4f?text=${encodeURIComponent(name.slice(0, 4))}`; }} />
                         </div>
                       </Link>
@@ -126,7 +129,7 @@ export default function Cart() {
                         </Link>
 
                         {product?.artisan && (
-                          <p className="text-xs text-gray-500" style={{ marginBottom: 4 }}>by {product.artisan}</p>
+                          <p className="text-xs text-gray-600" style={{ marginBottom: 4 }}>by {product.artisan}</p>
                         )}
 
                         {/* Authentic badge */}
@@ -139,7 +142,7 @@ export default function Cart() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-base" style={{ color: "#1a5a32" }}>₹{price.toLocaleString("en-IN")}</span>
                           {originalPrice > price && (
-                            <span className="text-xs text-gray-400 line-through">₹{originalPrice.toLocaleString("en-IN")}</span>
+                            <span className="text-xs text-gray-600 line-through">₹{originalPrice.toLocaleString("en-IN")}</span>
                           )}
                           {savings > 0 && (
                             <span style={{ fontSize: 11, color: "#1a5a32", fontWeight: 700 }}>

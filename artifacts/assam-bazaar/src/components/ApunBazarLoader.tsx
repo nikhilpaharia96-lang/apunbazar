@@ -73,8 +73,8 @@ export function ApunBazarLoader({
         .ap-logo         { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-size:22px; font-weight:600; color:#1a4a2e; animation:ap-pulse 2s ease infinite; }
 
         .ap-brand   { font-family:'Playfair Display',serif; font-size:18px; font-weight:600; color:#1a4a2e; }
-        .ap-tagline { font-family:'Nunito',sans-serif; font-size:11px; letter-spacing:2.5px; color:#c9a84c; font-weight:600; text-transform:uppercase; margin-top:-12px; }
-        .ap-msg     { font-family:'Nunito',sans-serif; font-size:13px; color:#888; }
+        .ap-tagline { font-family:'Nunito',sans-serif; font-size:11px; letter-spacing:2.5px; color:#8a6a10; font-weight:600; text-transform:uppercase; margin-top:-12px; }
+        .ap-msg     { font-family:'Nunito',sans-serif; font-size:13px; color:#4b5563; }
 
         .ap-progress-track { width:120px; height:2px; background:#e8e2d0; border-radius:100px; overflow:hidden; }
         .ap-progress-fill  { height:100%; background:linear-gradient(90deg,#1a4a2e,#c9a84c,#1a4a2e); background-size:200% 100%; border-radius:100px; transition:width .03s linear; }

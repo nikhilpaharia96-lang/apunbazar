@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { useSEO } from "@/hooks/use-seo";
+import { imgProps } from "@/lib/img";
 import { useLocation } from "wouter";
 import { trackSearch } from "@/lib/analytics";
 
@@ -62,7 +64,7 @@ function Stars({ r }: { r: number }) {
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
         </svg>
       ))}
-      <span style={{ fontSize: 10, color: "#aaa", marginLeft: 3, fontFamily: "'Nunito',sans-serif" }}>{r.toFixed(1)}</span>
+      <span style={{ fontSize: 10, color: "#4b5563", marginLeft: 3, fontFamily: "'Nunito',sans-serif" }}>{r.toFixed(1)}</span>
     </div>
   );
 }
@@ -77,6 +79,7 @@ function sortProducts(products: Product[], sort: string): Product[] {
 }
 
 export default function Products() {
+  useSEO({ title: "Shop All Assamese Products", description: "Browse Assam tea, handloom, gamusa, bamboo & cane crafts and traditional foods. Authentic, artisan-made, delivered across India." });
   const [, navigate] = useLocation();
   const BANNERS = useProductBanners();
   const bannerScrollRef = useRef<HTMLDivElement>(null);
@@ -179,7 +182,7 @@ export default function Products() {
         .p-search  { display:flex; align-items:center; gap:8px; background:#f5f5f7; border-radius:10px; padding:9px 12px; transition:all .2s; border:1.5px solid transparent; }
         .p-search.focused { background:#fff; border-color:${G}44; box-shadow:0 0 0 3px ${G}10; }
         .p-search input { flex:1; background:none; border:none; outline:none; font-size:13px; color:#1a2d1a; font-family:'Nunito',sans-serif; }
-        .p-search input::placeholder { color:#bbb; }
+        .p-search input::placeholder { color:#4b5563; }
 
         /* BANNER */
         .p-banner-scroll { display:flex; overflow-x:hidden; scroll-snap-type:x mandatory; }
@@ -193,7 +196,7 @@ export default function Products() {
         .p-cat-bar::-webkit-scrollbar { display:none; }
         .p-cat-tab { display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 12px 10px; flex-shrink:0; border:none; background:none; cursor:pointer; position:relative; min-width:64px; }
         .p-cat-tab .icon  { font-size:22px; }
-        .p-cat-tab .label { font-size:10px; font-weight:600; color:#999; white-space:nowrap; font-family:'Nunito',sans-serif; transition:color .2s; }
+        .p-cat-tab .label { font-size:10px; font-weight:600; color:#4b5563; white-space:nowrap; font-family:'Nunito',sans-serif; transition:color .2s; }
         .p-cat-tab.active .label { color:${G}; font-weight:700; }
         .p-cat-tab.active::after { content:''; position:absolute; bottom:0; left:18%; right:18%; height:2.5px; background:${G}; border-radius:2px 2px 0 0; }
         .p-cat-img { width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid #f0ece4; transition:border-color .2s; }
@@ -216,7 +219,7 @@ export default function Products() {
 
         /* RESULTS BAR */
         .p-results       { padding:9px 14px; background:#fff; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; justify-content:space-between; }
-        .p-results-label { font-size:11.5px; color:#888; font-family:'Nunito',sans-serif; }
+        .p-results-label { font-size:11.5px; color:#4b5563; font-family:'Nunito',sans-serif; }
         .p-results-label strong { color:#1a2d1a; }
         .p-view-btns { display:flex; gap:5px; }
         .p-view-btn  { width:28px; height:28px; border:1.5px solid #e0d8c0; border-radius:6px; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; }
@@ -224,7 +227,7 @@ export default function Products() {
 
         /* BREADCRUMB */
         .p-breadcrumb { display:flex; align-items:center; gap:4px; padding:7px 14px; background:#faf8f4; border-bottom:1px solid #f0ece4; flex-wrap:wrap; }
-        .p-breadcrumb span { font-size:10.5px; color:#bbb; font-family:'Nunito',sans-serif; cursor:pointer; }
+        .p-breadcrumb span { font-size:10.5px; color:#4b5563; font-family:'Nunito',sans-serif; cursor:pointer; }
         .p-breadcrumb span:hover { color:${G}; }
         .p-breadcrumb .cur { color:#1a2d1a; font-weight:700; cursor:default; }
         .p-breadcrumb .sep { color:#ddd; }
@@ -250,7 +253,7 @@ export default function Products() {
         /* discount badge — pill, top-left */
         .p-disc-badge {
           position:absolute; top:10px; left:10px; z-index:2;
-          background:#e53935; color:#fff;
+          background:#c62828; color:#fff;
           font-size:10px; font-weight:800; padding:3px 9px;
           border-radius:20px; font-family:'Nunito',sans-serif; letter-spacing:.3px;
         }
@@ -292,14 +295,14 @@ export default function Products() {
           display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
         }
         .p-origin {
-          font-size:10px; color:#888; margin-bottom:6px;
+          font-size:10px; color:#4b5563; margin-bottom:6px;
           font-family:'Nunito',sans-serif; display:flex; align-items:center; gap:3px;
         }
         .p-stars-row { margin-bottom:8px; }
         .p-price-row { display:flex; align-items:baseline; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
         .p-price { font-size:16px; font-weight:800; color:#111; font-family:'Nunito',sans-serif; }
-        .p-orig  { font-size:11px; color:#bbb; text-decoration:line-through; font-family:'Nunito',sans-serif; }
-        .p-disc  { font-size:10.5px; font-weight:700; color:#e53935; font-family:'Nunito',sans-serif; }
+        .p-orig  { font-size:11px; color:#4b5563; text-decoration:line-through; font-family:'Nunito',sans-serif; }
+        .p-disc  { font-size:10.5px; font-weight:700; color:#c62828; font-family:'Nunito',sans-serif; }
 
         /* ADD TO CART — outlined dark button, matches reference */
         .p-add-btn {
@@ -321,7 +324,7 @@ export default function Products() {
         .p-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:100; animation:fadeIn .2s ease; }
         .p-sheet   { position:fixed; bottom:0; left:0; right:0; background:#fff; border-radius:20px 20px 0 0; z-index:101; animation:slideUp .25s ease; max-height:72vh; overflow-y:auto; }
         .p-sheet-handle { width:36px; height:4px; background:#e0d8c0; border-radius:2px; margin:12px auto 4px; }
-        .p-sheet-title  { padding:10px 20px 12px; font-size:11px; font-weight:700; color:#aaa; letter-spacing:1.5px; font-family:'Nunito',sans-serif; border-bottom:1px solid #f0ece4; }
+        .p-sheet-title  { padding:10px 20px 12px; font-size:11px; font-weight:700; color:#4b5563; letter-spacing:1.5px; font-family:'Nunito',sans-serif; border-bottom:1px solid #f0ece4; }
         .p-sort-opt { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; font-size:13.5px; color:#282c3f; font-family:'Nunito',sans-serif; cursor:pointer; border-bottom:1px solid #f8f5f0; transition:background .15s; }
         .p-sort-opt:hover { background:#faf8f4; }
         .p-sort-opt.active { color:${G}; font-weight:700; }
@@ -332,10 +335,10 @@ export default function Products() {
         /* FILTER SHEET */
         .p-filter-wrap    { display:flex; height:65vh; }
         .p-filter-sidebar { width:110px; background:#faf8f4; border-right:1px solid #f0ece4; overflow-y:auto; }
-        .p-filter-sec     { padding:14px 12px; font-size:12px; font-weight:700; color:#888; font-family:'Nunito',sans-serif; cursor:pointer; border-bottom:1px solid #f0ece4; transition:all .15s; }
+        .p-filter-sec     { padding:14px 12px; font-size:12px; font-weight:700; color:#4b5563; font-family:'Nunito',sans-serif; cursor:pointer; border-bottom:1px solid #f0ece4; transition:all .15s; }
         .p-filter-sec.active { background:#fff; border-left:3px solid ${G}; color:${G}; }
         .p-filter-body { flex:1; padding:16px; overflow-y:auto; }
-        .p-filter-lbl  { font-size:10.5px; color:#aaa; font-family:'Nunito',sans-serif; margin-bottom:10px; font-weight:700; letter-spacing:1px; }
+        .p-filter-lbl  { font-size:10.5px; color:#4b5563; font-family:'Nunito',sans-serif; margin-bottom:10px; font-weight:700; letter-spacing:1px; }
         .p-filter-row  { display:flex; align-items:center; gap:8px; padding:9px 0; font-size:12.5px; color:#282c3f; font-family:'Nunito',sans-serif; cursor:pointer; border-bottom:1px solid #f8f5f0; }
         .p-chk         { width:17px; height:17px; border:1.5px solid #d4d5d9; border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:9px; transition:all .15s; }
         .p-chk.on      { background:${G}; border-color:${G}; color:#fff; }
@@ -359,7 +362,7 @@ export default function Products() {
             placeholder="Search products, brands and more"
           />
           {search && (
-            <button onClick={() => setSearch("")} style={{ background:"none", border:"none", cursor:"pointer", fontSize:16, color:"#bbb", lineHeight:1, padding:0 }}>×</button>
+            <button onClick={() => setSearch("")} style={{ background:"none", border:"none", cursor:"pointer", fontSize:16, color:"#4b5563", lineHeight:1, padding:0 }}>×</button>
           )}
         </div>
       </div>
@@ -394,7 +397,7 @@ export default function Products() {
         </div>
         <div className="p-banner-dots">
           {BANNERS.map((_, i) => (
-            <button key={i} className="p-banner-dot"
+            <button key={i} className="p-banner-dot" aria-label={`Show banner ${i + 1}`}
               style={{ width: i === bannerIdx ? 20 : 5, background: i === bannerIdx ? GOLD : "rgba(255,255,255,.4)" }}
               onClick={() => {
                 setBannerIdx(i);
@@ -433,7 +436,7 @@ export default function Products() {
         {mainCats.map(cat => (
           <button key={cat.id} className={`p-cat-tab${activeMain === cat.slug ? " active" : ""}`} onClick={() => selectMain(cat)}>
             {cat.imageUrl
-              ? <img src={cat.imageUrl} alt={cat.name} className="p-cat-img" />
+              ? <img {...imgProps(cat.imageUrl, "64px")} alt={cat.name} className="p-cat-img" loading="lazy" decoding="async" />
               : <span className="icon">{CAT_ICONS[cat.slug] ?? "🏷️"}</span>
             }
             <span className="label">{cat.name}</span>
@@ -505,10 +508,10 @@ export default function Products() {
           <strong>{displayedProducts.length}</strong> items — <strong>{sectionLabel}</strong>
         </span>
         <div className="p-view-btns">
-          <button className={`p-view-btn${viewMode === "grid2" ? " active" : ""}`} onClick={() => setViewMode("grid2")}>
+          <button className={`p-view-btn${viewMode === "grid2" ? " active" : ""}`} aria-label="Two-column grid view" aria-pressed={viewMode === "grid2"} onClick={() => setViewMode("grid2")}>
             <svg width="13" height="13" viewBox="0 0 12 12" fill="currentColor"><rect x="0" y="0" width="5" height="5" rx="1"/><rect x="7" y="0" width="5" height="5" rx="1"/><rect x="0" y="7" width="5" height="5" rx="1"/><rect x="7" y="7" width="5" height="5" rx="1"/></svg>
           </button>
-          <button className={`p-view-btn${viewMode === "grid1" ? " active" : ""}`} onClick={() => setViewMode("grid1")}>
+          <button className={`p-view-btn${viewMode === "grid1" ? " active" : ""}`} aria-label="Single-column list view" aria-pressed={viewMode === "grid1"} onClick={() => setViewMode("grid1")}>
             <svg width="13" height="13" viewBox="0 0 12 12" fill="currentColor"><rect x="0" y="0" width="12" height="4" rx="1"/><rect x="0" y="6" width="12" height="4" rx="1"/></svg>
           </button>
         </div>
@@ -542,13 +545,14 @@ export default function Products() {
             <div key={p.id} className="p-card" style={{ animationDelay:`${Math.min(i,7)*0.04}s` }}>
               {/* IMAGE */}
               <div className="p-img-wrap" style={{ height:imgH }} onClick={() => navigate(`/products/${p.id}`)}>
-                <img src={img} alt={p.name} className="p-img" style={{ height:imgH }} loading="lazy"
+                <img {...imgProps(img, "(min-width:1024px) 22vw, 48vw")} alt={p.name} className="p-img" style={{ height:imgH }} loading="lazy" decoding="async" width={400} height={imgH}
                   onError={e => { (e.target as HTMLImageElement).src = FALLBACK_IMG; }} />
 
                 {p.featured && !disc && <div className="p-feat-badge">FEATURED</div>}
                 {disc >= 5  && <div className="p-disc-badge">-{disc}%</div>}
 
                 <button className={`p-wish${wishlist.has(p.id) ? " on" : ""}`}
+                  aria-label={wishlist.has(p.id) ? `Remove ${p.name} from wishlist` : `Add ${p.name} to wishlist`} aria-pressed={wishlist.has(p.id)}
                   onClick={e => { e.stopPropagation(); toggleWish(p.id); }}>
                   <svg width="15" height="15" viewBox="0 0 24 24"
                     fill={wishlist.has(p.id) ? "#f43f5e" : "none"}
@@ -613,7 +617,7 @@ export default function Products() {
           <div className="p-empty">
             <div style={{ fontSize:44, marginBottom:12 }}>🛍️</div>
             <p style={{ fontSize:15, fontWeight:700, color:"#1a2d1a", fontFamily:"'Playfair Display',serif", margin:"0 0 6px" }}>Koi product nahi mila</p>
-            <p style={{ fontSize:12, color:"#aaa", fontFamily:"'Nunito',sans-serif", margin:"0 0 16px" }}>Filter ya search change karke try karo</p>
+            <p style={{ fontSize:12, color:"#4b5563", fontFamily:"'Nunito',sans-serif", margin:"0 0 16px" }}>Filter ya search change karke try karo</p>
             <button onClick={selectAll} style={{ padding:"10px 24px", border:`1.5px solid ${G}`, borderRadius:8, background:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"'Nunito',sans-serif", color:G }}>
               CLEAR FILTERS
             </button>

@@ -68,7 +68,7 @@ export default function BottomNav() {
                     style={{
                       width: 20, height: 20,
                       strokeWidth: isActive ? 2.2 : 1.6,
-                      color: isActive ? G : isWish && wishCount > 0 ? "#f43f5e" : "rgba(0,0,0,0.38)",
+                      color: isActive ? G : isWish && wishCount > 0 ? "#f43f5e" : "rgba(0,0,0,0.65)",
                       fill: isActive && isWish && wishCount > 0
                         ? "#f43f5e"
                         : isWish && wishCount > 0 && !isActive
@@ -90,7 +90,7 @@ export default function BottomNav() {
 
               <span
                 className="bn-label"
-                style={{ color: isActive ? G : "rgba(0,0,0,0.38)", fontWeight: isActive ? 700 : 500 }}
+                style={{ color: isActive ? G : "rgba(0,0,0,0.65)", fontWeight: isActive ? 700 : 500 }}
               >
                 {label}
               </span>

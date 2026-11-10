@@ -20,7 +20,7 @@ export const StarRating = memo(function StarRating({
   rating,
   reviewCount,
   size = 11,
-  color = "#c17b3e",
+  color = "#774813",
 }: StarRatingProps) {
   const roundedRating = Math.round(rating);
 
@@ -45,7 +45,7 @@ export const StarRating = memo(function StarRating({
         {rating.toFixed(1)}
       </span>
       {reviewCount !== undefined && reviewCount > 0 && (
-        <span className="text-gray-400 ml-0.5" style={{ fontSize: size }}>
+        <span className="text-gray-600 ml-0.5" style={{ fontSize: size }}>
           ({reviewCount})
         </span>
       )}

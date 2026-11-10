@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSEO } from "@/hooks/use-seo";
 import { useParams, Link } from "wouter";
 import { useAddToCart, type Order } from "@workspace/api-client-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +24,7 @@ const statusColors: Record<string, { bg: string; text: string; border: string }>
 const statusSteps = ["pending", "confirmed", "processing", "shipped", "delivered"];
 
 export default function OrderDetail() {
+  useSEO({ title: "Order Details", noindex: true });
   const params = useParams<{ id: string }>();
   const id = parseInt(params.id ?? "0", 10);
   const { sessionId } = useSession();
@@ -97,7 +99,7 @@ export default function OrderDetail() {
   if (!order) {
     return (
       <div className="page-enter container mx-auto px-4 py-16 max-w-2xl text-center">
-        <p className="text-gray-500 mb-4">We couldn't find this order{email ? " for that email" : ""}. Enter the email address used at checkout to view it.</p>
+        <p className="text-gray-600 mb-4">We couldn't find this order{email ? " for that email" : ""}. Enter the email address used at checkout to view it.</p>
         <form onSubmit={e => { e.preventDefault(); setEmail(emailInput.trim()); }} style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
           <input type="email" required value={emailInput} onChange={e => setEmailInput(e.target.value)} placeholder="Email used at checkout"
             style={{ height: 44, padding: "0 14px", border: "1.5px solid #e0e0e0", borderRadius: 12, fontSize: 14, minWidth: 240 }} />
@@ -123,7 +125,7 @@ export default function OrderDetail() {
         .detail-card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
         .step-line { flex: 1; height: 2px; margin-bottom: 20px; }
         .action-btn { border: none; border-radius: 12px; padding: 10px 18px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: opacity 0.2s; }
-        .wa-btn { background: #25d366; color: #fff; }
+        .wa-btn { background: #0b7a3a; color: #fff; }
         .wa-btn:hover { opacity: 0.9; }
         .change-btn { background: #fff; border: 1.5px solid #ddd !important; color: #555; border-radius: 10px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
       `}</style>
@@ -142,7 +144,7 @@ export default function OrderDetail() {
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
               <h1 className="font-bold text-xl text-gray-900">{order.orderNumber}</h1>
-              <p className="text-sm text-gray-400 mt-0.5">
+              <p className="text-sm text-gray-600 mt-0.5">
                 Placed on {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>
@@ -173,7 +175,7 @@ export default function OrderDetail() {
                       </div>
                     ) : (
                       <div style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid #ddd", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Circle className="h-3 w-3 text-gray-300" />
+                        <Circle className="h-3 w-3 text-gray-600" />
                       </div>
                     )}
                     <span style={{ fontSize: 10, marginTop: 4, fontWeight: i <= currentStep ? 700 : 400, color: i <= currentStep ? "#1a5a32" : "#aaa", textAlign: "center", whiteSpace: "nowrap" }}>
@@ -207,7 +209,7 @@ export default function OrderDetail() {
                   <Link href={`/products/${item.productId}`}>
                     <p className="font-semibold text-sm hover:text-green-700 transition-colors">{item.productName}</p>
                   </Link>
-                  <p style={{ fontSize: 12, color: "#888", marginTop: 2 }}>Qty: {item.quantity}</p>
+                  <p style={{ fontSize: 12, color: "#4b5563", marginTop: 2 }}>Qty: {item.quantity}</p>
                 </div>
                 <p className="font-bold text-sm">₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
               </div>
@@ -216,11 +218,11 @@ export default function OrderDetail() {
 
           {/* Price breakdown */}
           <div style={{ borderTop: "1px solid #f0f0f0", marginTop: 16, paddingTop: 14, display: "flex", flexDirection: "column", gap: 8, fontSize: 14 }}>
-            <div className="flex justify-between text-gray-500">
+            <div className="flex justify-between text-gray-600">
               <span>Subtotal</span>
               <span>₹{(order.subtotal ?? 0).toLocaleString("en-IN")}</span>
             </div>
-            <div className="flex justify-between text-gray-500">
+            <div className="flex justify-between text-gray-600">
               <span>Shipping{order.paymentMethod === "cod" ? " + COD" : ""}</span>
               {(order.shippingFee ?? 0) === 0
                 ? <span style={{ color: "#1a5a32", fontWeight: 700 }}>Free</span>
@@ -243,9 +245,9 @@ export default function OrderDetail() {
             <button className="change-btn">Change</button>
           </div>
           <p className="font-bold text-sm text-gray-900">{order.customerName}</p>
-          <p className="text-sm text-gray-500 mt-0.5">{order.shippingAddress}</p>
-          <p className="text-sm text-gray-500">{order.shippingCity}, {order.shippingState} — {order.shippingPincode}</p>
-          <p className="text-sm text-gray-500 mt-1">{order.customerPhone}</p>
+          <p className="text-sm text-gray-600 mt-0.5">{order.shippingAddress}</p>
+          <p className="text-sm text-gray-600">{order.shippingCity}, {order.shippingState} — {order.shippingPincode}</p>
+          <p className="text-sm text-gray-600 mt-1">{order.customerPhone}</p>
         </div>
 
         {/* Payment */}
@@ -266,11 +268,11 @@ export default function OrderDetail() {
                 style={{ background: "#1a5a32", color: "#fff", border: "none", borderRadius: 12, padding: "11px 22px", fontWeight: 700, fontSize: 14, cursor: paying ? "wait" : "pointer", opacity: paying ? 0.7 : 1 }}>
                 {paying ? "Opening payment…" : `Pay ₹${(order.total ?? 0).toLocaleString("en-IN")} now`}
               </button>
-              <p className="text-xs text-gray-400 mt-1.5">Your items are reserved for you. Complete payment to confirm the order.</p>
+              <p className="text-xs text-gray-600 mt-1.5">Your items are reserved for you. Complete payment to confirm the order.</p>
             </div>
           )}
           {order.notes && (
-            <p className="text-gray-400 text-xs mt-3 italic">Note: {order.notes}</p>
+            <p className="text-gray-600 text-xs mt-3 italic">Note: {order.notes}</p>
           )}
         </div>
 

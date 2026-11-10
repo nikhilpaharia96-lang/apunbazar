@@ -142,7 +142,7 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
           {/* Badges */}
           {discount && discount > 0 && (
             <div className="absolute top-2 left-2 z-20">
-              <Badge className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 shadow-sm">
+              <Badge className="bg-red-700 text-white text-[10px] font-bold px-2 py-0.5 shadow-sm">
                 -{discount}%
               </Badge>
             </div>
@@ -170,7 +170,7 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
             aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
             aria-pressed={wishlisted}
             className="absolute bottom-2 right-2 z-20 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm border border-orange-100 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform shadow-sm"
-            style={{ color: wishlisted ? "#ef4444" : "#c17b3e" }}
+            style={{ color: wishlisted ? "#ef4444" : "#774813" }}
           >
             <Heart size={14} fill={wishlisted ? "currentColor" : "none"} />
           </button>
@@ -178,14 +178,14 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
 
         {/* Body */}
         <div className={`flex flex-col gap-1 flex-1 ${compact ? "p-2" : "p-3"}`}>
-          <p className="text-[10px] font-bold tracking-widest uppercase text-[#c17b3e] truncate">
+          <p className="text-[10px] font-bold tracking-widest uppercase text-[#774813] truncate">
             {product.categoryName}
           </p>
           <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2">
             {product.name}
           </h3>
           {product.artisan && (
-            <p className="text-xs text-gray-400 truncate">by {product.artisan}</p>
+            <p className="text-xs text-gray-600 truncate">by {product.artisan}</p>
           )}
 
           {product.rating > 0 && (
@@ -198,7 +198,7 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
                 ₹{product.price.toLocaleString("en-IN")}
               </span>
               {product.originalPrice && product.originalPrice > product.price && (
-                <span className="text-xs text-gray-400 line-through">
+                <span className="text-xs text-gray-600 line-through">
                   ₹{product.originalPrice.toLocaleString("en-IN")}
                 </span>
               )}
