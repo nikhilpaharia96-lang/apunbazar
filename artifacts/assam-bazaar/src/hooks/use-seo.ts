@@ -13,6 +13,7 @@ interface SEOMeta {
 }
 
 const DEFAULT_TITLE = "ApunBazar — Authentic Assamese Products";
+const DEFAULT_OG_IMAGE = "/og-image.jpg"; // 1200×630 brand preview, used when a page has no image of its own
 const JSONLD_ID = "seo-jsonld";
 
 function upsertMeta(attr: "name" | "property", key: string, content: string) {
@@ -21,7 +22,8 @@ function upsertMeta(attr: "name" | "property", key: string, content: string) {
   el.setAttribute("content", content);
 }
 
-export function useSEO({ title, description, image, type = "website", noindex = false, jsonLd }: SEOMeta) {
+export function useSEO({ title, description, image: pageImage, type = "website", noindex = false, jsonLd }: SEOMeta) {
+  const image = pageImage || DEFAULT_OG_IMAGE;
   const ld = jsonLd ? JSON.stringify(jsonLd) : "";
   useEffect(() => {
     const full = `${title} | ApunBazar`;

@@ -1,14 +1,24 @@
 {
-  "name": "ApunBazar — Authentic Assamese Products",
+  "name": "ApunBazar – The Pride of Assam",
   "short_name": "ApunBazar",
-  "description": "Assamese handloom, tea, handicrafts & organic products direct from artisans.",
+  "description": "Authentic Assam Tea, Handloom, Handicrafts, Bamboo Products and Traditional Foods. Delivered across India.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1a5a32",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }
