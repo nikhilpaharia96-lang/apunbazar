@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useSEO } from "@/hooks/use-seo";
 import { imgProps } from "@/lib/img";
 import { useParams, useLocation } from "wouter";
-import { Link } from "wouter";
 import {
   useGetProduct,
   useAddToCart,
@@ -649,7 +648,7 @@ export default function ProductDetail() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"details" | "reviews">("details");
-  const [cartCount, setCartCount] = useState(0);
+  const [, setCartCount] = useState(0);
   const imgScrollRef = useRef<HTMLDivElement>(null);
 
   const addToCart = useAddToCart();
@@ -747,8 +746,7 @@ export default function ProductDetail() {
         .pdp-topbar { position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #f0ece4;display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:54px; }
         .pdp-back { display:flex;align-items:center;justify-content:center;width:40px;height:40px;margin-left:-8px;border-radius:50%;color:#282c3f;background:none;border:none;cursor:pointer;padding:0; }
         .pdp-back:active { background:#f3efe6; }
-        .pdp-cartlink { display:flex;align-items:center;justify-content:center;width:40px;height:40px;margin-right:-8px;position:relative;color:#282c3f; }
-        .pdp-logo { font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#1a3a22; }
+                .pdp-logo { font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#1a3a22; }
         .pdp-logo span { color:#8a6a10; }
         .pdp-img-scroll { display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none; }
         .pdp-img-scroll::-webkit-scrollbar { display:none; }
@@ -797,15 +795,6 @@ export default function ProductDetail() {
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {product && <ShareButtons productName={product.name} price={product.price} />}
-          <Link href="/cart" aria-label="View cart" className="pdp-cartlink">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-              <path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.66a2 2 0 001.98-1.71L23 6H6"/>
-            </svg>
-            {cartCount > 0 && (
-              <div style={{ position: "absolute", top: 3, right: 3, width: 16, height: 16, borderRadius: "50%", background: GOLD, color: "#111", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Nunito',sans-serif" }}>{cartCount}</div>
-            )}
-          </Link>
         </div>
       </div>
 
