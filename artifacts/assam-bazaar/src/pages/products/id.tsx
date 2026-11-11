@@ -751,7 +751,7 @@ export default function ProductDetail() {
         .pdp-img-scroll { display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none; }
         .pdp-img-scroll::-webkit-scrollbar { display:none; }
         .pdp-img-slide { flex-shrink:0;width:100%;scroll-snap-align:start; }
-        .pdp-main-img { width:100%;aspect-ratio:1/1;object-fit:cover;display:block; }
+        .pdp-main-img { width:100%;aspect-ratio:1/1;object-fit:contain;background:#f8f6f0;display:block; }
         .pdp-thumb-strip { display:flex;gap:8px;overflow-x:auto;padding:10px 16px;background:#fafafa;scrollbar-width:none;border-bottom:1px solid #f0ece4; }
         .pdp-thumb-strip::-webkit-scrollbar { display:none; }
         .pdp-thumb { width:52px;height:52px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid transparent;flex-shrink:0;transition:border-color .2s; }
@@ -793,7 +793,6 @@ export default function ProductDetail() {
         <button className="pdp-back" aria-label="Back to products" onClick={() => navigate("/products")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
         </button>
-        <span className="pdp-logo">Apun<span>Bazar</span></span>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           {product && <ShareButtons productName={product.name} price={product.price} />}
           <Link href="/cart" aria-label="View cart" style={{ position: "relative", color: "#282c3f" }}>
