@@ -89,6 +89,42 @@ export function initAnalytics(): void {
   if (CLARITY_ID) loadMicrosoftClarity(CLARITY_ID);
 }
 
+// ── Own visitor tracking (shown in Admin → Visitors) ───────────────────────
+function randomId(): string {
+  const a = new Uint8Array(12);
+  crypto.getRandomValues(a);
+  return Array.from(a, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function getId(storage: Storage, key: string): string {
+  try {
+    let id = storage.getItem(key);
+    if (!id) { id = randomId(); storage.setItem(key, id); }
+    return id;
+  } catch {
+    return randomId(); // storage blocked (private mode) — still counts the visit
+  }
+}
+
+/** Sends one anonymous page-view record to our own API. Fails silently. */
+export function trackVisit(path: string): void {
+  if (!isProd) return;
+  try {
+    if (sessionStorage.getItem("apunbazar_admin_token")) return; // don't count the owner
+  } catch { /* ignore */ }
+  fetch("/api/track/visit", {
+    method: "POST",
+    keepalive: true,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      visitorId: getId(localStorage, "ab_visitor_id"),
+      sessionId: getId(sessionStorage, "ab_session_id"),
+      path,
+      referrer: document.referrer || "",
+    }),
+  }).catch(() => { /* analytics must never break the site */ });
+}
+
 // ── Page View ──────────────────────────────────────────────────────────────
 /** Called automatically by usePageTracking() on every route change */
 export function trackPageView(path: string, title?: string): void {

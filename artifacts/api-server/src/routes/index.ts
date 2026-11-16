@@ -13,6 +13,8 @@ import settingsRouter  from "./settings";
 import uploadsRouter   from "./uploads";
 import manageRouter    from "./manage";
 import customersRouter from "./customers";
+import trackRouter     from "./track";
+import visitorsRouter  from "./visitors";
 
 const router = Router();
 
@@ -28,6 +30,8 @@ router.use("/staff",      staffRouter);
 router.use("/coupons",    couponsRouter);
 router.use("/settings",   settingsRouter);
 router.use("/uploads",    uploadsRouter);
+router.use("/track",      trackRouter);
+router.use("/manage/visitors", visitorsRouter);
 router.use("/manage",     manageRouter);
 router.use("/customers",  customersRouter);
 

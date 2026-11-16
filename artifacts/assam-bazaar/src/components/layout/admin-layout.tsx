@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import {
   Menu, X, LayoutDashboard, Package, ShoppingBag, Tag, ArrowLeft, LogOut, Settings, BarChart3,
   Ticket, Shield, SlidersHorizontal, Image, Layout, Users, FileText, UserRound, Megaphone, Truck,
-  Headphones, KeyRound, ScrollText, PanelLeftClose, PanelLeftOpen, ExternalLink, Boxes, CreditCard,
+  Headphones, KeyRound, ScrollText, PanelLeftClose, PanelLeftOpen, ExternalLink, Boxes, CreditCard, Globe2,
 } from "lucide-react";
 import { adminLogout, getAdminEmail, isAdminLoggedIn } from "@/lib/admin-auth";
 import { getStaffSession, hasPermission, staffLogout, ROLE_LABELS, type Permission } from "@/lib/staff-auth";
@@ -26,6 +26,7 @@ const NAV_GROUPS: NavGroup[] = [
   { title: "Overview", items: [
     { href: "/admin",           label: "Dashboard", icon: LayoutDashboard, exact: true, permission: "dashboard" },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3, permission: "analytics" },
+    { href: "/admin/visitors",  label: "Visitors",  icon: Globe2,    permission: "analytics" },
     { href: "/admin/reports",   label: "Reports",   icon: FileText,  permission: "reports" },
     { href: "/admin/payments",  label: "Payments",  icon: CreditCard, permission: "orders" },
   ]},

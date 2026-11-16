@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { startExpiryJob } from "./services/order-expiry";
+import { ensureVisitsTable } from "./routes/track";
 
 // Fail fast on missing/weak secrets instead of failing on the first admin request
 if (process.env.NODE_ENV === "production") {
@@ -23,6 +24,7 @@ const effectivePort = isNaN(port) || port <= 0 ? 8080 : port;
 
 app.listen(effectivePort, "0.0.0.0", () => {
   startExpiryJob();
+  ensureVisitsTable().catch((err) => logger.error(err, "Could not prepare site_visits table"));
   logger.info({ port: effectivePort, env: process.env.NODE_ENV ?? "development" }, "🚀 API server started");
 });
 

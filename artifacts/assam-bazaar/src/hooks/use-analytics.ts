@@ -6,7 +6,7 @@
 
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { trackPageView } from "@/lib/analytics";
+import { trackPageView, trackVisit } from "@/lib/analytics";
 
 const PAGE_TITLES: Record<string, string> = {
   "/":              "Home — ApunBazar",
@@ -43,6 +43,7 @@ export function usePageTracking(): void {
                   : document.title);
 
       if (title) trackPageView(location, title);
+      if (!location.startsWith("/admin") && !location.startsWith("/staff")) trackVisit(location);
     }, 100);
 
     return () => clearTimeout(timer);

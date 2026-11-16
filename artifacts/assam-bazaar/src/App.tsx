@@ -50,6 +50,7 @@ const AdminProducts         = lazy(() => import("@/pages/admin/products"));
 const AdminOrders           = lazy(() => import("@/pages/admin/orders"));
 const AdminCategories       = lazy(() => import("@/pages/admin/categories"));
 const AdminAnalytics        = lazy(() => import("@/pages/admin/analytics"));
+const AdminVisitors         = lazy(() => import("@/pages/admin/visitors"));
 const AdminCoupons          = lazy(() => import("@/pages/admin/coupons"));
 const AdminCustomers        = lazy(() => import("@/pages/admin/customers"));
 const AdminInventory        = lazy(() => import("@/pages/admin/inventory"));
@@ -182,6 +183,7 @@ function Router() {
             <Route path="/admin/categories"       component={AdminCategories} />
             <Route path="/admin/orders"           component={AdminOrders} />
             <Route path="/admin/analytics"        component={AdminAnalytics} />
+            <Route path="/admin/visitors"         component={AdminVisitors} />
             <Route path="/admin/coupons"          component={AdminCoupons} />
             <Route path="/admin/customers"        component={AdminCustomers} />
             <Route path="/admin/inventory"        component={AdminInventory} />
